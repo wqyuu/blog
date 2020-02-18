@@ -5,7 +5,7 @@
     
 <meta charset="utf-8" >
 
-<title>简单图解从零搭建SpringBoot | Wqyuu</title>
+<title>Springboot整合Elasticsearch（5） | Wqyuu</title>
 <meta name="description" content="秉忠贞之志,守谦退之节">
 
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
@@ -86,12 +86,12 @@
       <div class="content-container">
         <div class="post-detail">
           
-            <div class="feature-container" style="background-image: url('https://wqyuu.github.io/blog/post-images/jian-dan-tu-jie-cong-ling-da-jian-springboot.jpg')">
+            <div class="feature-container" style="background-image: url('https://wqyuu.github.io/blog/post-images/springboot-zheng-he-elasticsearch5.jpg')">
             </div>
           
-          <h2 class="post-title">简单图解从零搭建SpringBoot</h2>
+          <h2 class="post-title">Springboot整合Elasticsearch（5）</h2>
           <div class="post-info post-detail-info">
-            <span><i class="icon-calendar-outline"></i> 2019-02-17</span>
+            <span><i class="icon-calendar-outline"></i> 2019-03-24</span>
             
               <span>
                 <i class="icon-pricetags-outline"></i>
@@ -105,35 +105,59 @@
             
           </div>
           <div class="post-content">
-            <p>利用IDEA创建项目，也可以直接在<a href="https://start.spring.io/">https://start.spring.io/</a>上面创建</p>
-<!-- more -->
-<p><img src="https://wqyuu.github.io/blog/post-images/1582011714452.jpg" alt="" loading="lazy"><br>
-环境：windows<br>
-工具：IDEA<br>
-JDK版本：1.8<br>
-maven: 3.5<br>
-mysql: 5.6</p>
-<p><strong>首先利用IDEA创建项目，也可以直接在<a href="https://start.spring.io/">https://start.spring.io/</a>上面创建<br>
-步骤如图：</strong><br>
-（1）File-&gt;New-&gt;Project<br>
-<img src="https://img-blog.csdnimg.cn/20190828094629328.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"><br>
-（2）选中Spring Initializr 。JDK选中1.8，点击next<br>
-<img src="https://img-blog.csdnimg.cn/20190828095043865.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"><br>
-(3) 设置组名，项目名，版本等信息，然后next。（如果此处有报错Initialization failed for https://start.spring.io/ 查看这篇解决办法：<a href="https://blog.csdn.net/qq_37338761/article/details/100113712">解决SpringBoot项目报错（一）——Initialization failed</a>）<br>
-<img src="https://img-blog.csdnimg.cn/20190828095848772.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"><br>
-（4）勾选依赖 DevTools、Spring Web Starter、Thymeleaf、Spring Security、JPA 然后next<br>
-<img src="https://img-blog.csdnimg.cn/20190828100022359.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"><br>
-（5）选中项目保存位置，点Finish。等待创建完成！<br>
-<img src="https://img-blog.csdnimg.cn/20190828100251967.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"></p>
+            <h3 id="es的java-api">ES的java api：</h3>
+<pre><code class="language-java">BoolQueryBuilder boolQuery = QueryBuilders.boolQuery().filter(“name”,name));
+
+SearchRequestBuilder requestBuilder = this.esClient.prepareSearch(INDEX_NAME)
+        .setTypes(INDEX_TYPE)
+        .setQuery(boolQuery)
+        .addAggregation(AggregationBuilders.terms(“agg_name”).field(“name”))
+	    .addAggregation(AggregationBuilders.terms(&quot;agg_salary&quot;).subAggregation(
+			AggregationBuilders.avg(&quot;total_salary&quot;).field(&quot;salary&quot;)
+			)
+		)   //在es的api中，多字段上的聚合操作需要用到子聚合(subAggregation)
+		.setSize(0);            
+logger.debug(requestBuilder.toString());
+SearchResponse response = requestBuilder.get();
+if(response.status()==RestStatus.OK){
+    Terms terms = response.getAggregations().get(“agg_name”);
+    if(terms.getBuckets()!=null&amp;&amp;!terms.getBuckets().isEmpty()){
+        //得到所有子聚合
+        Map subaggmap =terms.getBucketByKey(district).getAggregations().asMap();
+        //avg值获取方法
+        double avg_age= ((InternalAvg) subaggmap.get(&quot;avg_age&quot;)).getValue();
+        //sum值获取方法
+        double total_salary = ((InternalSum) subaggmap.get(&quot;total_salary&quot;)).getValue();
+        //记录数
+        terms.getBucketByKey(district).getDocCount();
+    }
+}else{
+    logger.warn(&quot;Failed to Aggregate for &quot;+”agg_name”);
+}
+</code></pre>
+<h4 id="其他特殊聚合">其他特殊聚合：</h4>
+<ul>
+<li>聚合后对Aggregation结果排序<pre><code class="language-java">   TermsBuilder teamAgg= AggregationBuilders.terms(&quot;team&quot;).order(Order.aggregation(&quot;total_salary &quot;, false);
+</code></pre>
+</li>
+<li>Aggregation结果条数的问题<br>
+默认情况下，search执行后，仅返回10条聚合结果，如果想反悔更多的结果，需要在构建TermsBuilder 时指定size：<pre><code class="language-java">TermsBuilder teamAgg= AggregationBuilders.terms(&quot;team&quot;).size(15);
+</code></pre>
+</li>
+</ul>
+<p>聚合操作主要是调用了SearchRequestBuilder的addAggregation方法，通常是传入一个TermsBuilder，子聚合调用TermsBuilder的subAggregation方法，可以添加的子聚合有TermsBuilder、SumBuilder、AvgBuilder、MaxBuilder、MinBuilder等常见的聚合操作。</p>
+<p>从实现上来讲，SearchRequestBuilder在内部保持了一个私有的 SearchSourceBuilder实例， SearchSourceBuilder内部包含一个List<AbstractAggregationBuilder>，每次调用addAggregation时会调用 SearchSourceBuilder实例，添加一个AggregationBuilder。<br>
+同样的，TermsBuilder也在内部保持了一个List<AbstractAggregationBuilder>，调用addAggregation方法（来自父类addAggregation）时会添加一个AggregationBuilder。</p>
+<p>参考：<a href="https://wqyuu.github.io/blog/post-images/1582013999793.jpg">ElasticSearch AggregationBuilders java api常用聚会查询</a></p>
 
           </div>
         </div>
 
         
           <div class="next-post">
-            <a class="purple-link" href="https://wqyuu.github.io/blog/post/hello-gridea">
+            <a class="purple-link" href="https://wqyuu.github.io/blog/post/springboot-zheng-he-elasticsearch4">
               <h3 class="post-title">
-                下一篇：Hello Gridea
+                下一篇：Springboot整合Elasticsearch（4）
               </h3>
             </a>
           </div>

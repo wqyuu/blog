@@ -1,0 +1,474 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>Springboot整合Elasticsearch（6） | Wqyuu</title>
+<meta name="description" content="秉忠贞之志,守谦退之节">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://wqyuu.github.io/blog/favicon.ico?v=1582014554475">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://wqyuu.github.io/blog/styles/main.css">
+
+
+  
+    <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css" />
+  
+
+  
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://wqyuu.github.io/blog">
+        <img class="avatar" src="https://wqyuu.github.io/blog/images/avatar.png?v=1582014554475" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://wqyuu.github.io/blog">
+        <h1 class="site-title">Wqyuu</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="https://wqyuu.github.io/blog" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+            <div class="feature-container" style="background-image: url('https://wqyuu.github.io/blog/post-images/springboot-zheng-he-elasticsearch6.jpg')">
+            </div>
+          
+          <h2 class="post-title">Springboot整合Elasticsearch（6）</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2019-03-27</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://wqyuu.github.io/blog/tag/springboot">
+                    springboot
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="elasticsearch地理坐标与百度地图">Elasticsearch地理坐标与百度地图</h2>
+<p>想要使用百度地图，可以在百度地图的控制台免费注册，然后使用，控制台地址：<a href="http://lbsyun.baidu.com/apiconsole/center#/home">http://lbsyun.baidu.com/apiconsole/center#/home</a><br>
+我使用的百度地图版本是v4<br>
+LBS.云服务接口文档：<a href="http://lbsyun.baidu.com/index.php?title=lbscloud/api/geodataV4">http://lbsyun.baidu.com/index.php?title=lbscloud/api/geodataV4</a></p>
+<h3 id="api接口初始化">API接口初始化</h3>
+<p>BAIDU_MAP_KEY 为自己的ak,需要在控制台创建应用</p>
+<pre><code class="language-java">    private static final String BAIDU_MAP_KEY = &quot;aSg2jDQuYk9PaeeRqCb7rG6seU123456&quot;;
+
+    private static final String BAIDU_MAP_GEOCONV_API = &quot;http://api.map.baidu.com/geocoding/v3/?&quot;;
+
+    // 百度地图API ：http://lbsyun.baidu.com/index.php?title=webapi/guide/webservice-geocoding
+
+    //http://api.map.baidu.com/geocoding/v3/?address=%E5%8C%97%E4%BA%AC%E5%B8%82%E6%B5%B7%E6%B7%80%E5%8C%BA%E4%B8%8A%E5%9C%B0%E5%8D%81%E8%A1%9710%E5%8F%B7&amp;output=json&amp;ak=qSg2jDQuYk9PaVBRqCb7rG6seU0gmBsT&amp;callback=showLocation
+    /**
+     * POI数据管理接口
+     */
+    private static final String LBS_CREATE_API = &quot;http://api.map.baidu.com/geodata/v4/poi/create&quot;;
+
+    private static final String LBS_QUERY_API = &quot;http://api.map.baidu.com/geodata/v4/poi/list?&quot;;
+
+    private static final String LBS_UPDATE_API = &quot;http://api.map.baidu.com/geodata/v4/poi/update&quot;;
+
+    private static final String LBS_DELETE_API = &quot;http://api.map.baidu.com/geodata/v4/poi/delete&quot;;
+</code></pre>
+<h3 id="上传坐标">上传坐标</h3>
+<p>虎鲸数据管理平台 v3链接：<a href="http://lbsyun.baidu.com/data/mydata#/?_k=awsg5v">http://lbsyun.baidu.com/data/mydata#/?_k=awsg5v</a></p>
+<pre><code class="language-java">    public ServiceResult lbsUpload(BaiduMapLocation location, String title,
+                                   String address,
+                                   long houseId, int price,
+                                   int area) {
+        HttpClient httpClient = HttpClients.createDefault();
+        List&lt;NameValuePair&gt; nvps = new ArrayList&lt;&gt;();
+        nvps.add(new BasicNameValuePair(&quot;latitude&quot;, String.valueOf(location.getLatitude())));
+        nvps.add(new BasicNameValuePair(&quot;longitude&quot;, String.valueOf(location.getLongitude())));
+        nvps.add(new BasicNameValuePair(&quot;coord_type&quot;, &quot;3&quot;)); // 百度坐标系
+        nvps.add(new BasicNameValuePair(&quot;geotable_id&quot;, &quot;1000006426&quot;));
+        // 需要在虎鲸数据管理平台 v3中创建表，除了基本的字段增加houseId、price、area
+        nvps.add(new BasicNameValuePair(&quot;ak&quot;, BAIDU_MAP_KEY));
+        nvps.add(new BasicNameValuePair(&quot;houseId&quot;, String.valueOf(houseId)));
+        nvps.add(new BasicNameValuePair(&quot;price&quot;, String.valueOf(price)));
+        nvps.add(new BasicNameValuePair(&quot;area&quot;, String.valueOf(area)));
+        nvps.add(new BasicNameValuePair(&quot;title&quot;, title));
+        nvps.add(new BasicNameValuePair(&quot;address&quot;, address));
+
+        HttpPost post;
+        JsonNode isjsonNode = isLbsDataExists(houseId);
+        if (null!=isjsonNode) {
+            List&lt;JsonNode&gt; nodeList =isjsonNode.findValues(&quot;pois&quot;);
+            if(null!=nodeList&amp;&amp;!nodeList.isEmpty()) {
+                JsonNode jsonNode =nodeList.get(0);
+                if(null!=jsonNode.get(&quot;id&quot;)){
+                    String id = jsonNode.get(&quot;id&quot;).asText();
+                    nvps.add(new BasicNameValuePair(&quot;id&quot;, id));
+                    post = new HttpPost(LBS_UPDATE_API);
+                }else {
+                    post = new HttpPost(LBS_CREATE_API);
+                }
+
+            }else {
+                post = new HttpPost(LBS_CREATE_API);
+            }
+
+        } else {
+            post = new HttpPost(LBS_CREATE_API);
+        }
+
+        try {
+            post.setEntity(new UrlEncodedFormEntity(nvps, &quot;UTF-8&quot;));
+            HttpResponse response = httpClient.execute(post);
+            String result = EntityUtils.toString(response.getEntity(), &quot;UTF-8&quot;);
+            if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
+                logger.error(&quot;Can not upload lbs data for response: &quot; + result);
+                return new ServiceResult(false, &quot;Can not upload baidu lbs data&quot;);
+            } else {
+                JsonNode jsonNode = objectMapper.readTree(result);
+                int  status = jsonNode.get(&quot;status&quot;).asInt();
+                if (status != 0) {
+                    String message = jsonNode.get(&quot;message&quot;).asText();
+                    logger.error(&quot;Error to upload lbs data for status: {}, and message: {}&quot;, status, message);
+                    return new ServiceResult(false, &quot;Error to upload lbs data&quot;);
+                } else {
+                    // int id = jsonNode.get(&quot;id&quot;).asInt();
+                    return ServiceResult.success();
+                }
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return new ServiceResult(false);
+    }
+</code></pre>
+<h3 id="判断坐标是否存在">判断坐标是否存在</h3>
+<pre><code class="language-java">    private JsonNode isLbsDataExists(Long houseId) {
+        HttpClient httpClient = HttpClients.createDefault();
+        StringBuilder sb = new StringBuilder(LBS_QUERY_API);
+        sb.append(&quot;geotable_id=&quot;).append(&quot;1000006426&quot;).append(&quot;&amp;&quot;)
+                .append(&quot;ak=&quot;).append(BAIDU_MAP_KEY).append(&quot;&amp;&quot;)
+                .append(&quot;houseId=&quot;).append(houseId).append(&quot;,&quot;).append(houseId);
+        HttpGet get = new HttpGet(sb.toString());
+        try {
+            HttpResponse response = httpClient.execute(get);
+            String result = EntityUtils.toString(response.getEntity(), &quot;UTF-8&quot;);
+            if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
+                logger.error(&quot;Can not get lbs data for response: &quot; + result);
+                return null;
+            }
+
+            JsonNode jsonNode = objectMapper.readTree(result);
+            int status = jsonNode.get(&quot;status&quot;).asInt();
+            if (status != 0) {
+                logger.error(&quot;Error to get lbs data for status: &quot; + status);
+                return null;
+            } else {
+                long size = jsonNode.get(&quot;size&quot;).asLong();
+                if (size &gt; 0) {
+                    return jsonNode;
+                } else {
+                    return null;
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+</code></pre>
+<h3 id="移除坐标">移除坐标</h3>
+<pre><code class="language-java">   public ServiceResult removeLbs(Long houseId) {
+        HttpClient httpClient = HttpClients.createDefault();
+        List&lt;NameValuePair&gt; nvps = new ArrayList&lt;&gt;();
+        nvps.add(new BasicNameValuePair(&quot;geotable_id&quot;, &quot;1000006426&quot;));
+        nvps.add(new BasicNameValuePair(&quot;ak&quot;, BAIDU_MAP_KEY));
+        nvps.add(new BasicNameValuePair(&quot;houseId&quot;, String.valueOf(houseId)));
+
+       JsonNode isjsonNode = isLbsDataExists(houseId);
+       if(null!=isjsonNode){
+           List&lt;JsonNode&gt; nodeList =isjsonNode.findValues(&quot;pois&quot;);
+           if(null!=nodeList&amp;&amp;nodeList.size()&gt;0){
+               Optional.ofNullable(nodeList.get(0).get(&quot;id&quot;)).ifPresent(n-&gt;{
+                   String id = nodeList.get(0).get(&quot;id&quot;).asText();
+                   nvps.add(new BasicNameValuePair(&quot;id&quot;, id));
+               });
+           }
+       }
+        HttpPost delete = new HttpPost(LBS_DELETE_API);
+        try {
+            delete.setEntity(new UrlEncodedFormEntity(nvps, &quot;UTF-8&quot;));
+            HttpResponse response = httpClient.execute(delete);
+            String result = EntityUtils.toString(response.getEntity(), &quot;UTF-8&quot;);
+            if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
+                logger.error(&quot;Error to delete lbs data for response: &quot; + result);
+                return new ServiceResult(false);
+            }
+
+            JsonNode jsonNode = objectMapper.readTree(result);
+            int status = jsonNode.get(&quot;status&quot;).asInt();
+            if (status != 0) {
+                String message = jsonNode.get(&quot;message&quot;).asText();
+                logger.error(&quot;Error to delete lbs data for message: &quot; + message);
+                return new ServiceResult(false, &quot;Error to delete lbs data for: &quot; + message);
+            }
+            return ServiceResult.success();
+        } catch (IOException e) {
+            logger.error(&quot;Error to delete lbs data.&quot;, e);
+            return new ServiceResult(false);
+        }
+    }
+</code></pre>
+<h3 id="通过地址获取地图坐标">通过地址获取地图坐标</h3>
+<pre><code class="language-java">   @Override
+    public ServiceResult&lt;BaiduMapLocation&gt; getBaiduMapLocation(String city, String address) {
+        String encodeAddress;
+
+        try {
+            encodeAddress = URLEncoder.encode(address, &quot;UTF-8&quot;);
+        } catch (UnsupportedEncodingException e) {
+            logger.error(&quot;Error to encode house address&quot;, e);
+            return new ServiceResult&lt;BaiduMapLocation&gt;(false, &quot;Error to encode hosue address&quot;);
+        }
+
+        HttpClient httpClient = HttpClients.createDefault();
+        StringBuilder sb = new StringBuilder(BAIDU_MAP_GEOCONV_API);
+        sb.append(&quot;address=&quot;).append(encodeAddress).append(&quot;&amp;&quot;)
+                .append(&quot;output=json&amp;&quot;)
+                .append(&quot;ak=&quot;).append(BAIDU_MAP_KEY);
+
+        HttpGet get = new HttpGet(sb.toString());
+        try {
+            HttpResponse response = httpClient.execute(get);
+            if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
+                return new ServiceResult&lt;BaiduMapLocation&gt;(false, &quot;Can not get baidu map location&quot;);
+            }
+
+            String result = EntityUtils.toString(response.getEntity(), &quot;UTF-8&quot;);
+            JsonNode jsonNode = objectMapper.readTree(result);
+            int status = jsonNode.get(&quot;status&quot;).asInt();
+            if (status != 0) {
+                return new ServiceResult&lt;BaiduMapLocation&gt;(false, &quot;Error to get map location for status: &quot; + status);
+            } {
+                BaiduMapLocation location = new BaiduMapLocation();
+                JsonNode jsonLocation = jsonNode.get(&quot;result&quot;).get(&quot;location&quot;);
+                location.setLongitude(jsonLocation.get(&quot;lng&quot;).asDouble());
+                location.setLatitude(jsonLocation.get(&quot;lat&quot;).asDouble());
+                return ServiceResult.of(location);
+            }
+
+        } catch (IOException e) {
+            logger.error(&quot;Error to fetch baidumap api&quot;, e);
+            return new ServiceResult&lt;BaiduMapLocation&gt;(false, &quot;Error to fetch baidumap api&quot;);
+        }
+    }
+</code></pre>
+<h2 id="elasticsearch-的geoboundingboxquery查询地理坐标信息">Elasticsearch 的geoBoundingBoxQuery查询地理坐标信息</h2>
+<p>Elasticsearch的地图坐标JavaApi:<br>
+<a href="https://www.elastic.co/guide/en/elasticsearch/client/java-api/2.4/java-geo-queries.html">https://www.elastic.co/guide/en/elasticsearch/client/java-api/2.4/java-geo-queries.html</a><br>
+首先在Elasticsearch中增加索引坐标属性<br>
+例：</p>
+<pre><code class="language-json">{
+  &quot;settings&quot;: {
+    &quot;number_of_replicas&quot;: 0,
+    &quot;number_of_shards&quot;: 5,
+    &quot;index.store.type&quot;: &quot;niofs&quot;,
+    &quot;index.query.default_field&quot;: &quot;title&quot;,
+    &quot;index.unassigned.node_left.delayed_timeout&quot;: &quot;5m&quot;
+  },
+  &quot;mappings&quot;: {
+    &quot;house&quot;: {
+      &quot;dynamic&quot;: &quot;strict&quot;,
+      &quot;_all&quot;: {
+        &quot;enabled&quot;: false
+      },
+      &quot;properties&quot;: {
+        &quot;Id&quot;: {
+          &quot;type&quot;: &quot;long&quot;
+        },
+        &quot;title&quot;: {
+          &quot;type&quot;: &quot;text&quot;,
+          &quot;index&quot;: &quot;analyzed&quot;,
+          &quot;analyzer&quot;: &quot;ik_smart&quot;,
+          &quot;search_analyzer&quot;: &quot;ik_smart&quot;
+        },
+        &quot;suggest&quot;: {
+          &quot;type&quot;: &quot;completion&quot;
+        },
+        &quot;location&quot;: {
+          &quot;type&quot;: &quot;geo_point&quot;
+        }
+      }
+    }
+  }
+}
+</code></pre>
+<p>可以通过postman直接post请求http://192.168.108.102:9200/test,在body中增加索引json。<br>
+然后查看head插件中是否生成成功。</p>
+<h4 id="java查询地理区域代码">java查询地理区域代码：</h4>
+<pre><code class="language-java">   public ServiceMultiResult&lt;Long&gt; mapQuery(MapSearch mapSearch) {
+        BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
+        boolQueryBuilder.filter(QueryBuilders.termQuery(HouseIndexKey.CITY_EN_NAME,mapSearch.getCityEnName()));
+        boolQueryBuilder.filter(
+                geoBoundingBoxQuery(&quot;location&quot;)
+                        .topLeft(mapSearch.getLeftLatitude(),mapSearch.getLeftLongitude())
+                        .bottomRight(mapSearch.getRightLatitude(),mapSearch.getRightLongitude())
+        );
+
+        SearchRequestBuilder searchRequestBuilder = this.esClient.prepareSearch(INDEX_NAME)
+                .setTypes(INDEX_TYPE)
+                .setQuery(boolQueryBuilder)
+                .addSort(HouseSort.getSortKey(mapSearch.getOrderBy()),SortOrder.valueOf(mapSearch.getOrderDirection()))
+                .setFrom(mapSearch.getStart())
+                .setSize(mapSearch.getSize());
+        List&lt;Long&gt; houseIds = new ArrayList&lt;&gt;();
+        SearchResponse response = searchRequestBuilder.get();
+        if(response.status()!=RestStatus.OK){
+            logger.warn(&quot;Search status is not ok for &quot;+ searchRequestBuilder);
+            return new ServiceMultiResult&lt;&gt;(0,houseIds);
+        }
+        for (SearchHit hit : response.getHits()) {
+            houseIds.add(Longs.tryParse(String.valueOf(hit.getSource().get(HouseIndexKey.HOUSE_ID))));
+        }
+        return new ServiceMultiResult&lt;&gt;(response.getHits().getTotalHits(),houseIds);
+    }
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://wqyuu.github.io/blog/post/springboot-zheng-he-elasticsearch5">
+              <h3 class="post-title">
+                下一篇：Springboot整合Elasticsearch（5）
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+        
+          <div id="gitalk-container"></div>
+        
+
+        
+      
+
+      <div class="site-footer">
+  <div class="slogan">秉忠贞之志,守谦退之节</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  Powered by <a href="https://github.com/wqyuu" target="_blank">Wqyuu</a> | <a class="rss" href="https://wqyuu.github.io/blog/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+  
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+    <script>
+
+      var gitalk = new Gitalk({
+        clientID: 'ad662aee99e9d77de1aa',
+        clientSecret: 'b74b253f75d653647fccdfe37d7d554405fc6ddc',
+        repo: 'blog',
+        owner: 'wqyuu',
+        admin: ['wqyuu'],
+        id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+        distractionFreeMode: false  // Facebook-like distraction free mode
+      })
+
+      gitalk.render('gitalk-container')
+
+    </script>
+  
+
+  
+
+
+
+
+  </body>
+</html>

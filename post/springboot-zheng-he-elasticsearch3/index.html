@@ -5,7 +5,7 @@
     
 <meta charset="utf-8" >
 
-<title>简单图解从零搭建SpringBoot | Wqyuu</title>
+<title>Springboot整合Elasticsearch（3） | Wqyuu</title>
 <meta name="description" content="秉忠贞之志,守谦退之节">
 
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
@@ -86,12 +86,12 @@
       <div class="content-container">
         <div class="post-detail">
           
-            <div class="feature-container" style="background-image: url('https://wqyuu.github.io/blog/post-images/jian-dan-tu-jie-cong-ling-da-jian-springboot.jpg')">
+            <div class="feature-container" style="background-image: url('https://wqyuu.github.io/blog/post-images/springboot-zheng-he-elasticsearch3.jpg')">
             </div>
           
-          <h2 class="post-title">简单图解从零搭建SpringBoot</h2>
+          <h2 class="post-title">Springboot整合Elasticsearch（3）</h2>
           <div class="post-info post-detail-info">
-            <span><i class="icon-calendar-outline"></i> 2019-02-17</span>
+            <span><i class="icon-calendar-outline"></i> 2019-03-21</span>
             
               <span>
                 <i class="icon-pricetags-outline"></i>
@@ -105,35 +105,48 @@
             
           </div>
           <div class="post-content">
-            <p>利用IDEA创建项目，也可以直接在<a href="https://start.spring.io/">https://start.spring.io/</a>上面创建</p>
-<!-- more -->
-<p><img src="https://wqyuu.github.io/blog/post-images/1582011714452.jpg" alt="" loading="lazy"><br>
-环境：windows<br>
-工具：IDEA<br>
-JDK版本：1.8<br>
-maven: 3.5<br>
-mysql: 5.6</p>
-<p><strong>首先利用IDEA创建项目，也可以直接在<a href="https://start.spring.io/">https://start.spring.io/</a>上面创建<br>
-步骤如图：</strong><br>
-（1）File-&gt;New-&gt;Project<br>
-<img src="https://img-blog.csdnimg.cn/20190828094629328.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"><br>
-（2）选中Spring Initializr 。JDK选中1.8，点击next<br>
-<img src="https://img-blog.csdnimg.cn/20190828095043865.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"><br>
-(3) 设置组名，项目名，版本等信息，然后next。（如果此处有报错Initialization failed for https://start.spring.io/ 查看这篇解决办法：<a href="https://blog.csdn.net/qq_37338761/article/details/100113712">解决SpringBoot项目报错（一）——Initialization failed</a>）<br>
-<img src="https://img-blog.csdnimg.cn/20190828095848772.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"><br>
-（4）勾选依赖 DevTools、Spring Web Starter、Thymeleaf、Spring Security、JPA 然后next<br>
-<img src="https://img-blog.csdnimg.cn/20190828100022359.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"><br>
-（5）选中项目保存位置，点Finish。等待创建完成！<br>
-<img src="https://img-blog.csdnimg.cn/20190828100251967.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"></p>
+            <h3 id="search-api">Search API</h3>
+<h4 id="基本查询">基本查询</h4>
+<pre><code class="language-java">SearchRequestBuilder requestBuilder = this.esClient.prepareSearch(INDEX_NAME)
+				.setTypes(INDEX_TYPE)
+                .setQuery(QueryBuilders.termQuery(&quot;query&quot;, &quot;test&quot;));    // Query		   
+</code></pre>
+<h4 id="排序-多条件查询">排序、多条件查询</h4>
+<pre><code class="language-java">BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
+boolQuery.filter(QueryBuilders.termQuery(&quot;name&quot;,&quot;wqy&quot;));  
+boolQuery.filter(QueryBuilders.rangeQuery(&quot;area&quot;).lte(100).gte(20));  // Filter
+
+boolQuery.should(
+     QueryBuilders.matchQuery(&quot;title&quot;).boost(2.0f)
+);
+boolQuery.should(QueryBuilders.multiMatchQuery(rentSearch.getKeywords(),
+     &quot;age&quot;,&quot;high&quot;
+));
+
+SearchRequestBuilder requestBuilder = this.esClient.prepareSearch(INDEX_NAME)
+          .setTypes(INDEX_TYPE)
+          .setQuery(boolQuery)
+          .addSort(HouseSort.getSortKey(&quot;sequence1&quot;),
+                        SortOrder.valueOf(&quot;desc&quot;))
+          .setFrom(&quot;0&quot;)
+          .setSize(&quot;10&quot;)
+          .setFetchSource(&quot;id&quot;,null);
+</code></pre>
+<h4 id="返回结果判断">返回结果判断</h4>
+<pre><code class="language-java">SearchResponse response = requestBuilder.get();
+if(response.status()!=RestStatus.OK){
+    logger.warn(&quot;Search status is no ok for &quot;+requestBuilder);
+}
+</code></pre>
 
           </div>
         </div>
 
         
           <div class="next-post">
-            <a class="purple-link" href="https://wqyuu.github.io/blog/post/hello-gridea">
+            <a class="purple-link" href="https://wqyuu.github.io/blog/post/springboot-zheng-he-elasticsearch2">
               <h3 class="post-title">
-                下一篇：Hello Gridea
+                下一篇：Springboot整合Elasticsearch（2）
               </h3>
             </a>
           </div>

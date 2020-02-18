@@ -1,0 +1,451 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>基于springboot与阿里云实现免注册登录 | Wqyuu</title>
+<meta name="description" content="秉忠贞之志,守谦退之节">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://wqyuu.github.io/blog/favicon.ico?v=1582014554475">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://wqyuu.github.io/blog/styles/main.css">
+
+
+  
+    <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css" />
+  
+
+  
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://wqyuu.github.io/blog">
+        <img class="avatar" src="https://wqyuu.github.io/blog/images/avatar.png?v=1582014554475" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://wqyuu.github.io/blog">
+        <h1 class="site-title">Wqyuu</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="https://wqyuu.github.io/blog" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+            <div class="feature-container" style="background-image: url('https://wqyuu.github.io/blog/post-images/ji-yu-springboot-yu-a-li-yun-shi-xian-mian-zhu-ce-deng-lu.jpg')">
+            </div>
+          
+          <h2 class="post-title">基于springboot与阿里云实现免注册登录</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2019-03-28</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://wqyuu.github.io/blog/tag/springboot">
+                    springboot
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <p><em>在自己学习慕课网瓦力老师的课程时，总结了基于springboot与阿里云实现免注册登录的实现。下面是整体的实现过程</em></p>
+<!-- more -->
+<h3 id="简介">简介</h3>
+<blockquote>
+<p>阿里云短信服务提供短信发送API接口SendSms和SendBatchSms，分别用于单个模板的短信单独或批量发送、多个短信模板的短信批量发送。短信服务（Short Message Service）是阿里云为用户提供的一种通信服务的能力。支持向国内和国际快速发送验证码、短信通知和推广短信</p>
+</blockquote>
+<p>基于<code>springboot</code>与阿里云实现免注册登录，类似常用网站的免注册登录，通过使用阿里云短信服务发送验证码，并在<code>redis</code>中缓存验证码信息，过期清除，以实现通过手机号注册，接到验证码在一分钟内填写验证码，并跳转登录的功能。</p>
+<p>这里只有后端的代码实现部分，前端页面等全部信息可以到github地址上面获取：<br>
+<a href="https://github.com/wqyuu/springboot-es">https://github.com/wqyuu/springboot-es</a></p>
+<hr>
+<h3 id="实战">实战</h3>
+<p>项目基本环境以及配置：<br>
+<a href="https://blog.csdn.net/qq_37338761/article/details/102501961">https://blog.csdn.net/qq_37338761/article/details/102501961</a></p>
+<hr>
+<h4 id="pomxml中添加依赖">pom.xml中添加依赖</h4>
+<pre><code class="language-xml">&lt;dependency&gt;
+    &lt;groupId&gt;com.aliyun&lt;/groupId&gt;
+    &lt;artifactId&gt;aliyun-java-sdk-core&lt;/artifactId&gt;
+    &lt;version&gt;3.2.3&lt;/version&gt;
+    &lt;!--&lt;scope&gt;system&lt;/scope&gt;--&gt;
+    &lt;!--&lt;systemPath&gt;${project.basedir}/lib/aliyun-java-sdk-core-3.2.3.jar&lt;/systemPath&gt;--&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;com.aliyun&lt;/groupId&gt;
+    &lt;artifactId&gt;aliyun-java-sdk-dysmsapi&lt;/artifactId&gt;
+    &lt;version&gt;1.0.0&lt;/version&gt;
+    &lt;!--&lt;scope&gt;system&lt;/scope&gt;--&gt;
+    &lt;!--&lt;systemPath&gt;${project.basedir}/lib/aliyun-java-sdk-dysmsapi-1.0.0.jar&lt;/systemPath&gt;--&gt;
+&lt;/dependency&gt;
+</code></pre>
+<h4 id="项目中添加阿里云的lib">项目中添加阿里云的lib</h4>
+<p>由于maven中没有aliyun的依赖，所以将lib放到根目录下面<br>
+<img src="https://img-blog.csdnimg.cn/20191022172954626.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"></p>
+<h4 id="配置文件增加redis配置-阿里云短信配置">配置文件增加redis配置、阿里云短信配置</h4>
+<p>redis直接配置本地的地址，我这里使用的是免密登录，开发环境可以这么做。<br>
+redis用来缓存短信的验证码，保留10分钟，过期删除</p>
+<pre><code class="language-properties"># redis config
+spring.redis.database=0
+spring.redis.host=127.0.0.1
+spring.redis.port=6379
+spring.redis.pool.max-idle=8
+spring.redis.timeout=3000
+#session
+spring.session.store-type=redis
+
+# 阿里云短信配置 注意替换自己申请的配置
+aliyun.sms.accessKey=LTAI4FeWmDfk8SErg2x6*****
+aliyun.sms.accessKeySecret=MbpEfvvJ1qQgzKJHUUlLlX******
+aliyun.sms.template.code=SMS_175533***
+</code></pre>
+<h4 id="controller">Controller</h4>
+<pre><code class="language-java">import com.wqy.springbootes.base.ApiResponse;
+import com.wqy.springbootes.base.LoginUserUtil;
+import com.wqy.springbootes.service.IUserService;
+import com.wqy.springbootes.service.ServiceResult;
+import org.apache.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+@Controller
+public class UserController {
+
+    @Autowired
+    private IUserService userService;
+
+
+    @GetMapping(&quot;/user/login&quot;)
+    public String loginPage(){
+        return &quot;user/login&quot;;
+    }
+
+    @GetMapping(&quot;/user/center&quot;)
+    public String centerPage(){
+        return &quot;user/center&quot;;
+    }
+
+	@GetMapping(value = &quot;sms/code&quot;)
+	@ResponseBody
+	public ApiResponse smsCode(@RequestParam(&quot;telephone&quot;)String telephone){
+	
+	    if(!LoginUserUtil.checkTelephone(telephone)){
+	        return ApiResponse.ofMessage(HttpStatus.BAD_REQUEST.value(),&quot;请输入正确手机号&quot;);
+	    }
+	    ServiceResult&lt;String&gt; result = smsService.sendSms(telephone);
+	    if(result.isSuccess()){
+	        return ApiResponse.ofSuccess(&quot;&quot;);
+	    }else{
+	        return ApiResponse.ofMessage(HttpStatus.BAD_REQUEST.value(),result.getMessage());
+	    }
+	
+	}
+}
+
+</code></pre>
+<h4 id="ismsservice接口">ISmsService接口</h4>
+<pre><code class="language-java">/**
+ * 验证码服务
+ */
+public interface ISmsService {
+
+    /**
+     * 发送验证码到指定手机 并缓存验证码 10分钟 及 请求间隔时间1分钟
+     * @param telephone
+     * @return
+     */
+    ServiceResult&lt;String&gt; sendSms(String telephone);
+
+    /**
+     * 获取缓存中的验证码
+     * @param telephone
+     * @return
+     */
+    String getSmsCode(String telephone);
+
+    /**
+     * 移除指定手机号的验证码缓存
+     * @param telephone
+     */
+    void remove(String telephone);
+
+}
+
+
+</code></pre>
+<h4 id="smsserviceimpl-实现类">SmsServiceImpl 实现类</h4>
+<pre><code class="language-java">import com.aliyuncs.DefaultAcsClient;
+import com.aliyuncs.IAcsClient;
+import com.aliyuncs.dysmsapi.model.v20170525.SendSmsRequest;
+import com.aliyuncs.dysmsapi.model.v20170525.SendSmsResponse;
+import com.aliyuncs.exceptions.ClientException;
+import com.aliyuncs.http.MethodType;
+import com.aliyuncs.profile.DefaultProfile;
+import com.aliyuncs.profile.IClientProfile;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.stereotype.Service;
+
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
+
+@Service
+public class SmsServiceImpl implements ISmsService ,InitializingBean {
+
+    @Value(&quot;${aliyun.sms.accessKey}&quot;)
+    private String accessKey;
+    @Value(&quot;${aliyun.sms.accessKeySecret}&quot;)
+    private String secertKey;
+    @Value(&quot;${aliyun.sms.template.code}&quot;)
+    private String templateCode;
+
+    private IAcsClient acsClient;
+
+    @Autowired
+    private RedisTemplate&lt;String, String&gt; redisTemplate;
+
+    private final static String SMS_CODE_CONTENT_PREFIX=&quot;SMS::CODE::CONTENT&quot;;
+
+    private final static String NUMS[]={&quot;0&quot;,&quot;1&quot;,&quot;2&quot;,&quot;3&quot;,&quot;4&quot;,&quot;5&quot;,&quot;6&quot;,&quot;7&quot;,&quot;8&quot;,&quot;9&quot;};
+
+    private static final Random random = new Random();
+
+    @Override
+    public ServiceResult&lt;String&gt; sendSms(String telephone) {
+        String gapKey = &quot;SMS::CODE::INTERVAL::&quot;+telephone;
+        String result = redisTemplate.opsForValue().get(gapKey);
+        if(result!= null){ // 判断是否已缓存验证码
+            return new ServiceResult&lt;String&gt;(false,&quot;请求次数太频繁&quot;);
+        }
+        String code =generateRandomSmsCode(); // 生成验证码
+        String templateParam = String.format(&quot;{\&quot;code\&quot;:\&quot;%s\&quot;}&quot;,code); 
+
+        //组装请求对象
+        SendSmsRequest request = new SendSmsRequest();
+
+        // 使用post提交
+        request.setMethod(MethodType.POST);
+        request.setPhoneNumbers(telephone);
+        request.setTemplateParam(templateParam);
+        request.setTemplateCode(templateCode);
+        request.setSignName(&quot;wqy-es&quot;);
+
+        boolean success = false;
+
+        try {
+            SendSmsResponse response = acsClient.getAcsResponse(request);
+            if(&quot;OK&quot;.equals(response.getCode())){
+                success = true;
+            }else{
+                //TODO  log
+            }
+        } catch (ClientException e) {
+            e.printStackTrace();
+        }
+        if(success){
+            redisTemplate.opsForValue().set(gapKey,code,60,TimeUnit.SECONDS);
+            redisTemplate.opsForValue().set(SMS_CODE_CONTENT_PREFIX+telephone,code,10,TimeUnit.MINUTES);
+            return ServiceResult.of(code);
+        }else{
+            return new ServiceResult&lt;String&gt;(false,&quot;系统忙，稍后重试&quot;);
+        }
+    }
+
+    @Override
+    public String getSmsCode(String telephone) {
+        return this.redisTemplate.opsForValue().get(SMS_CODE_CONTENT_PREFIX+telephone);
+    }
+
+    @Override
+    public void remove(String telephone) {
+        this.redisTemplate.delete(SMS_CODE_CONTENT_PREFIX+telephone);
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        // 设置超时时间
+        System.setProperty(&quot;sun.net.client.defaultConnectTimeout&quot;,&quot;10000&quot;);
+        System.setProperty(&quot;sun.net.client.defaultReadTimeout&quot;,&quot;10000&quot;);
+
+        IClientProfile profile = DefaultProfile.getProfile(&quot;cn-beijing&quot;,accessKey,secertKey);
+
+        String product = &quot;Dysmsapi&quot;;
+        String domain = &quot;dysmsapi.aliyuncs.com&quot;;
+
+        DefaultProfile.addEndpoint(&quot;cn-beijing&quot;,&quot;cn-beijing&quot;,product,domain);
+        // 初始化短信客户端
+        this.acsClient = new DefaultAcsClient(profile);
+
+
+
+    }
+
+    private static String generateRandomSmsCode(){
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i &lt;6 ; i++) {
+            int index = random.nextInt(10);
+            sb.append(NUMS[index]);
+        }
+        return sb.toString();
+    }
+}
+</code></pre>
+<h3 id="结语">结语</h3>
+<p>springboot可以很方便的整合各种常用框架，提升开发效率</p>
+<p>免注册登录功能极大提升用户体验，虽然说需要后台帮助注册用户，这里要处理好登录之后，用户可以修改用户名的部分。</p>
+<p>阿里云短信服务需要自己到阿里云官网申请，阿里云官网也包括JAVA API，使用示例，短信模板，短信签名。</p>
+<h3 id="参考">参考</h3>
+<ul>
+<li>
+<p>阿里云短信服务  <a href="https://www.aliyun.com/citiao/1792456.html">https://www.aliyun.com/citiao/1792456.html</a></p>
+</li>
+<li>
+<p>BAT大牛亲授基于ElasticSearch的搜房网实战 <a href="https://coding.imooc.com/class/167.html">https://coding.imooc.com/class/167.html</a></p>
+</li>
+</ul>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://wqyuu.github.io/blog/post/springboot-zheng-he-elasticsearch6">
+              <h3 class="post-title">
+                下一篇：Springboot整合Elasticsearch（6）
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+        
+          <div id="gitalk-container"></div>
+        
+
+        
+      
+
+      <div class="site-footer">
+  <div class="slogan">秉忠贞之志,守谦退之节</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  Powered by <a href="https://github.com/wqyuu" target="_blank">Wqyuu</a> | <a class="rss" href="https://wqyuu.github.io/blog/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+  
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+    <script>
+
+      var gitalk = new Gitalk({
+        clientID: 'ad662aee99e9d77de1aa',
+        clientSecret: 'b74b253f75d653647fccdfe37d7d554405fc6ddc',
+        repo: 'blog',
+        owner: 'wqyuu',
+        admin: ['wqyuu'],
+        id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+        distractionFreeMode: false  // Facebook-like distraction free mode
+      })
+
+      gitalk.render('gitalk-container')
+
+    </script>
+  
+
+  
+
+
+
+
+  </body>
+</html>

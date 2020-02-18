@@ -5,7 +5,7 @@
     
 <meta charset="utf-8" >
 
-<title>简单图解从零搭建SpringBoot | Wqyuu</title>
+<title>Springboot整合Elasticsearch（2） | Wqyuu</title>
 <meta name="description" content="秉忠贞之志,守谦退之节">
 
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
@@ -86,54 +86,69 @@
       <div class="content-container">
         <div class="post-detail">
           
-            <div class="feature-container" style="background-image: url('https://wqyuu.github.io/blog/post-images/jian-dan-tu-jie-cong-ling-da-jian-springboot.jpg')">
+            <div class="feature-container" style="background-image: url('https://wqyuu.github.io/blog/post-images/springboot-zheng-he-elasticsearch2.jpg')">
             </div>
           
-          <h2 class="post-title">简单图解从零搭建SpringBoot</h2>
+          <h2 class="post-title">Springboot整合Elasticsearch（2）</h2>
           <div class="post-info post-detail-info">
-            <span><i class="icon-calendar-outline"></i> 2019-02-17</span>
-            
-              <span>
-                <i class="icon-pricetags-outline"></i>
-                
-                  <a href="https://wqyuu.github.io/blog/tag/springboot">
-                    springboot
-                    
-                  </a>
-                
-              </span>
+            <span><i class="icon-calendar-outline"></i> 2019-03-21</span>
             
           </div>
           <div class="post-content">
-            <p>利用IDEA创建项目，也可以直接在<a href="https://start.spring.io/">https://start.spring.io/</a>上面创建</p>
-<!-- more -->
-<p><img src="https://wqyuu.github.io/blog/post-images/1582011714452.jpg" alt="" loading="lazy"><br>
-环境：windows<br>
-工具：IDEA<br>
-JDK版本：1.8<br>
-maven: 3.5<br>
-mysql: 5.6</p>
-<p><strong>首先利用IDEA创建项目，也可以直接在<a href="https://start.spring.io/">https://start.spring.io/</a>上面创建<br>
-步骤如图：</strong><br>
-（1）File-&gt;New-&gt;Project<br>
-<img src="https://img-blog.csdnimg.cn/20190828094629328.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"><br>
-（2）选中Spring Initializr 。JDK选中1.8，点击next<br>
-<img src="https://img-blog.csdnimg.cn/20190828095043865.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"><br>
-(3) 设置组名，项目名，版本等信息，然后next。（如果此处有报错Initialization failed for https://start.spring.io/ 查看这篇解决办法：<a href="https://blog.csdn.net/qq_37338761/article/details/100113712">解决SpringBoot项目报错（一）——Initialization failed</a>）<br>
-<img src="https://img-blog.csdnimg.cn/20190828095848772.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"><br>
-（4）勾选依赖 DevTools、Spring Web Starter、Thymeleaf、Spring Security、JPA 然后next<br>
-<img src="https://img-blog.csdnimg.cn/20190828100022359.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"><br>
-（5）选中项目保存位置，点Finish。等待创建完成！<br>
-<img src="https://img-blog.csdnimg.cn/20190828100251967.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"></p>
+            <p>相关配置：<a href="https://blog.csdn.net/qq_37338761/article/details/102501961">Springboot整合Elasticsearch（1）</a></p>
+<h3 id="1操作索引">1.操作索引</h3>
+<h4 id="11-创建索引">1.1 创建索引</h4>
+<pre><code class="language-java">  IndexResponse response = this.esClient.prepareIndex(INDEX_NAME, INDEX_TYPE)
+                    .setSource(objectMapper.writeValueAsBytes(indexTemplate)).get();
+</code></pre>
+<h5 id="111-设置内容">1.1.1 设置内容</h5>
+<p>文档内容这里使用 Jackson进行序列化（<code>objectMapper.writeValueAsBytes(indexTemplate)</code>）<br>
+官方推荐的其他设置内容方式：</p>
+<ul>
+<li>自己使用字符串JSON</li>
+<li>使用Map</li>
+<li>Elasticsearch提供的内置XContentBuilder</li>
+</ul>
+<p>json示例：</p>
+<pre><code class="language-json">{
+    &quot;user&quot; : &quot;kimchy&quot;,
+    &quot;post_date&quot; : &quot;2009-11-15T14:12:12&quot;,
+    &quot;message&quot; : &quot;trying out Elasticsearch&quot;
+}
+</code></pre>
+<h5 id="112-indexresponse-对象">1.1.2 IndexResponse 对象</h5>
+<pre><code class="language-java">//索引名称
+String _index = response.getIndex(); 
+//类型名称
+String _type = response.getType(); 
+//文档ID（是否生成）
+String_id = response.getId(); 
+//版本（如果这是您第一次将此文档编入索引，则将获得：1）
+long _version = response.getVersion(); 
+//如果文档是新文档，则isCreated（）为true，如果文档已更新，则为false 
+boolean created = response.isCreated();
+</code></pre>
+<h4 id="12-更新索引">1.2 更新索引</h4>
+<pre><code class="language-java">UpdateResponse response = this.esClient.prepareUpdate(INDEX_NAME, INDEX_TYPE, esId).
+	setDoc(objectMapper.writeValueAsBytes(indexTemplate)).get();
+</code></pre>
+<h4 id="13-删除索引">1.3 删除索引</h4>
+<pre><code class="language-java">DeleteRequestBuilder deleteBuilder = this.esClient.prepareDelete(INDEX_NAME,INDEX_TYPE,esId);
+</code></pre>
+<h5 id="131-获取影响总数">1.3.1 获取影响总数</h5>
+<p>使用总数是否大于0判断是否成功</p>
+<pre><code class="language-java">DeleteResponse response = deleteBuilder.get();
+int total = response.getShardInfo().getTotal();
+</code></pre>
 
           </div>
         </div>
 
         
           <div class="next-post">
-            <a class="purple-link" href="https://wqyuu.github.io/blog/post/hello-gridea">
+            <a class="purple-link" href="https://wqyuu.github.io/blog/post/springboot-zheng-he-elasticsearch1">
               <h3 class="post-title">
-                下一篇：Hello Gridea
+                下一篇：Springboot整合Elasticsearch（1）
               </h3>
             </a>
           </div>

@@ -1,0 +1,283 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>Springboot整合Elasticsearch（4） | Wqyuu</title>
+<meta name="description" content="秉忠贞之志,守谦退之节">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://wqyuu.github.io/blog/favicon.ico?v=1582014554475">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://wqyuu.github.io/blog/styles/main.css">
+
+
+  
+    <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css" />
+  
+
+  
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://wqyuu.github.io/blog">
+        <img class="avatar" src="https://wqyuu.github.io/blog/images/avatar.png?v=1582014554475" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://wqyuu.github.io/blog">
+        <h1 class="site-title">Wqyuu</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="https://wqyuu.github.io/blog" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+            <div class="feature-container" style="background-image: url('https://wqyuu.github.io/blog/post-images/springboot-zheng-he-elasticsearch4.jpg')">
+            </div>
+          
+          <h2 class="post-title">Springboot整合Elasticsearch（4）</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2019-03-23</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://wqyuu.github.io/blog/tag/springboot">
+                    springboot
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h3 id="suggest的自动补全与ik分词">suggest的自动补全与IK分词</h3>
+<p>IK分词安装方式可见 <a href="https://blog.csdn.net/qq_37338761/article/details/101438059">ElasticSearch安装中文分词</a></p>
+<h4 id="analyzerequestbuilder实现ik分词">AnalyzeRequestBuilder实现IK分词</h4>
+<p><em>Java代码</em></p>
+<pre><code class="language-java">// 调用 IK 分词
+AnalyzeRequestBuilder requestBuilder= new AnalyzeRequestBuilder(this.esClient,AnalyzeAction.INSTANCE,INDEX_NAME,
+        “title”,
+        “name”);
+requestBuilder.setAnalyzer(&quot;ik_smart&quot;);
+
+AnalyzeResponse response = requestBuilder.get();
+List&lt;AnalyzeResponse.AnalyzeToken&gt; tokens = response.getTokens();
+if(tokens ==null){
+    logger.warn(&quot;Can not analyze token for person: &quot;+indexTemplate.getId());
+    return false;
+}
+// 循环赋值
+List&lt;PersonSuggest&gt; suggests = new ArrayList&lt;&gt;();
+for (AnalyzeResponse.AnalyzeToken token : tokens) {
+    // 排除数字类型 &amp; 小于2个字符的分词结果
+    if(&quot;&lt;NUM&gt;&quot;.equals(token.getType())||token.getTerm().length()&lt;2){
+        continue;
+    }
+
+    PersonSuggest suggest = new PersonSuggest();
+    suggest.setInput(token.getTerm());
+    suggests.add(suggest);
+}
+// 定制化小区自动补全
+PersonSuggest suggest = new PersonSuggest();
+suggest.setInput(indexTemplate.getTitle());
+suggests.add(suggest);
+
+indexTemplate.setSuggest(suggests);
+</code></pre>
+<blockquote>
+<p>indexTemplate为索引模板<br>
+PersonSuggest 为自动补全模板<br>
+INDEX_NAME,这里是指在 ES 设置的索引名称。<br>
+从容器注入的 ElasticsearchTemplate Bean 中获取 Client ，再通过 AnalyzeRequestBuilder 分析请求类型中进行分词并获取分词结果 AnalyzeResponse.AnalyzeToken 列表。</p>
+</blockquote>
+<h4 id="completion-suggest实现搜索提示">completion suggest实现搜索提示</h4>
+<h5 id="官网的elasticsearch-请求dsl">官网的Elasticsearch 请求DSL：</h5>
+<p>www.elastic.co地址：  <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-suggesters.html#completion-suggester">completion-suggester</a><br>
+<img src="https://img-blog.csdnimg.cn/20191012155132278.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"></p>
+<h5 id="java代码实现">Java代码实现</h5>
+<pre><code class="language-java"> // 构建CompletionSuggestionBuilder 
+ CompletionSuggestionBuilder suggestionBuilder = SuggestBuilders
+ 		 .completionSuggestion(&quot;autocomplete&quot;) // 设置查询属性名称，可以自定义任意名，与下面的getSuggestion一致
+ 		 .field(&quot;suggest&quot;)   // 自动补全的字段名
+         .text(prefix)		 // 自动补全内容
+         .size(5);			 // 获取条数限制
+         	
+ SuggestBuilder suggestBuilder = new SuggestBuilder();
+ suggestBuilder.addSuggestion(suggestionBuilder);
+// suggestBuilder.setText(&quot;autocomplete&quot;);
+
+ // 设置SearchRequestBuilder 的suggestionBuilder
+ SearchRequestBuilder requestBuilder = this.esClient.prepareSearch(INDEX_NAME)
+         .setTypes(INDEX_TYPE)
+         .addSuggestion(suggestionBuilder);
+ logger.debug(requestBuilder.toString());
+ SearchResponse response = requestBuilder.get();
+ Suggest suggest = response.getSuggest();
+ Suggest.Suggestion result = suggest.getSuggestion(&quot;autocomplete&quot;); // 获取返回结果
+
+ int maxSuggest = 0;
+ Set&lt;String&gt; suggestSet = new HashSet&lt;&gt;();
+
+ // 循环所有的结果
+ for (Object term : result.getEntries()) {
+     if(term instanceof CompletionSuggestion.Entry){
+         CompletionSuggestion.Entry item = (CompletionSuggestion.Entry) term;
+         if(item.getOptions().isEmpty()){
+             continue;
+         }
+         for (CompletionSuggestion.Entry.Option option : item.getOptions()) {
+             String tip = option.getText().string();
+             if(suggestSet.contains(tip)){
+                 continue;
+             }
+             suggestSet.add(tip);   // 保存返回的补全内容
+             maxSuggest++;
+         }
+     }
+     if(maxSuggest&gt;5){
+         break;
+     }
+
+ }
+ List&lt;String&gt; suggests = Lists.newArrayList(suggestSet.toArray(new String[]{}));
+~~~![](https://wqyuu.github.io/blog/post-images/1582013905606.jpg)</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://wqyuu.github.io/blog/post/springboot-zheng-he-elasticsearch3">
+              <h3 class="post-title">
+                下一篇：Springboot整合Elasticsearch（3）
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+        
+          <div id="gitalk-container"></div>
+        
+
+        
+      
+
+      <div class="site-footer">
+  <div class="slogan">秉忠贞之志,守谦退之节</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  Powered by <a href="https://github.com/wqyuu" target="_blank">Wqyuu</a> | <a class="rss" href="https://wqyuu.github.io/blog/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+  
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+    <script>
+
+      var gitalk = new Gitalk({
+        clientID: 'ad662aee99e9d77de1aa',
+        clientSecret: 'b74b253f75d653647fccdfe37d7d554405fc6ddc',
+        repo: 'blog',
+        owner: 'wqyuu',
+        admin: ['wqyuu'],
+        id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+        distractionFreeMode: false  // Facebook-like distraction free mode
+      })
+
+      gitalk.render('gitalk-container')
+
+    </script>
+  
+
+  
+
+
+
+
+  </body>
+</html>

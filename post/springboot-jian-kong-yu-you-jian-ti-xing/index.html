@@ -1,0 +1,335 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>SpringBoot监控与邮件提醒 | Wqyuu</title>
+<meta name="description" content="秉忠贞之志,守谦退之节">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://wqyuu.github.io/blog/favicon.ico?v=1582014554475">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://wqyuu.github.io/blog/styles/main.css">
+
+
+  
+    <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css" />
+  
+
+  
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://wqyuu.github.io/blog">
+        <img class="avatar" src="https://wqyuu.github.io/blog/images/avatar.png?v=1582014554475" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://wqyuu.github.io/blog">
+        <h1 class="site-title">Wqyuu</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="https://wqyuu.github.io/blog" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+            <div class="feature-container" style="background-image: url('https://wqyuu.github.io/blog/post-images/springboot-jian-kong-yu-you-jian-ti-xing.jpg')">
+            </div>
+          
+          <h2 class="post-title">SpringBoot监控与邮件提醒</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2019-04-06</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://wqyuu.github.io/blog/tag/springboot">
+                    springboot
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h3 id="简述">简述</h3>
+<p>利用<code>spring</code>框架中的任务注解<code>@Scheduled</code>定时执行任务，监控某个服务，并把其状态通过邮件发送给管理员。</p>
+<p>发邮件使用<code>springboot</code>的<code>JavaMailSender</code>类。这是一个很通用的工具接口，在<code>springboot</code>中只需要引入一个<code>maven</code>依赖，无需任何配置就可以从容地进行开发工作，简单快捷高效。</p>
+<h3 id="以监控elasticsearch集群的健康状态为例">以监控Elasticsearch集群的健康状态为例：</h3>
+<h4 id="添加maven依赖">添加maven依赖</h4>
+<p>确保先增加过<code>springboot</code>依赖之后，再增加以下依赖</p>
+<pre><code class="language-xml">        &lt;!-- https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient --&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.apache.httpcomponents&lt;/groupId&gt;
+            &lt;artifactId&gt;httpclient&lt;/artifactId&gt;
+            &lt;version&gt;4.5.2&lt;/version&gt;
+        &lt;/dependency&gt;
+        &lt;!--mail--&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-boot-starter-mail&lt;/artifactId&gt;
+        &lt;/dependency&gt;
+</code></pre>
+<h4 id="增加applicationproperties">增加application.properties</h4>
+<p>需要替换为自己邮箱协议与密码，发送方必须要开启smtp。我这里使用的QQ邮箱，设置方法见<a href="https://service.mail.qq.com/cgi-bin/help?subtype=1&amp;&amp;id=14&amp;&amp;no=1000898">QQ邮件开启smtp服务</a></p>
+<pre><code class="language-java"># mail 
+spring.mail.host=smtp.qq.com
+spring.mail.username=1234567835@qq.com
+spring.mail.password=lassssssyxvudibh
+spring.mail.properties.mail.stmp.auth=true
+</code></pre>
+<blockquote>
+<p>注意：在spring.mail.password处的值是需要在邮箱设置里面生成的授权码，这个不是真实的密码。</p>
+</blockquote>
+<h4 id="增加监控类">增加监控类</h4>
+<p>其中<code>HEALTH_CHECK_API</code>可替换为自己的服务监控接口</p>
+<pre><code class="language-java">import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+
+@Component
+public class ESMonitor {
+
+    private static final String HEALTH_CHECK_API = &quot;http://192.138.131.12:9200/_cluster/health&quot;;
+
+    private static final String GREEN = &quot;green&quot;;
+    private static final String YELLOW = &quot;yellow&quot;;
+    private static final String RED = &quot;red&quot;;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Autowired
+    private JavaMailSender mailSender;
+
+    @Scheduled(fixedDelay=5000)
+    public void healthCheck(){
+        HttpClient httpClient = HttpClients.createDefault();
+
+        HttpGet get = new HttpGet(HEALTH_CHECK_API);
+
+        try {
+            HttpResponse response = httpClient.execute(get);
+            if(response.getStatusLine().getStatusCode()!=HttpServletResponse.SC_OK){
+                System.out.println(&quot;Can not access ES Service normally! Please check the server.&quot;);
+            }else {
+                String body = EntityUtils.toString(response.getEntity(),&quot;UTF-8&quot;);
+                JsonNode jsonNode =  objectMapper.readTree(body);
+                String status = jsonNode.get(&quot;status&quot;).asText();
+                String msg = &quot;&quot;;
+                boolean isNormally = false;
+                switch (status){
+                    case GREEN:
+                        msg =&quot;ES server run normally.&quot;;
+                        isNormally = true;
+                        break;
+                    case YELLOW:
+                        msg =&quot;ES server gets status yellow!&quot;;
+                        break;
+                    case RED:
+                        msg =&quot;ES server gets status red!&quot;;
+                        break;
+                    default:
+                        msg =&quot;Unknow ES server status:&quot;+status ;
+                        break;
+                }
+                if(!isNormally){
+                    sendAlertMessage(msg);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    private void sendAlertMessage(String message){
+        SimpleMailMessage mailMessage = new SimpleMailMessage();
+        mailMessage.setFrom(&quot;1234567835@qq.com&quot;);
+        mailMessage.setTo(&quot;1234567835@qq.com&quot;);
+        mailMessage.setSubject(&quot;【警告】ES服务监控&quot;);
+        mailMessage.setText(message);
+
+        mailSender.send(mailMessage);
+    }
+
+}
+</code></pre>
+<p>这样就可以简单的监控服务是否健康了。</p>
+<h3 id="尾巴">尾巴</h3>
+<p>其中@Scheduled注解的参数解释：</p>
+<ol>
+<li>cron<br>
+语法@Scheduled(cron=&quot;1 * * * * * *&quot;)<br>
+表达式：[秒] [分] [小时] [日] [月] [周] [年]<br>
+其中年可以省略</li>
+<li>zone<br>
+时区，接收一个java.util.TimeZone#ID。cron表达式会基于该时区解析。默认是一个空字符串，即取服务器所在地的时区</li>
+<li>fixedDelay<br>
+上一次执行完毕时间点之后多长时间再执行。</li>
+<li>fixedDelayString<br>
+与 3. fixedDelay 意思相同，只是使用字符串的形式。唯一不同的是支持占位符<br>
+@Scheduled(fixedDelayString = &quot;${time.fixedDelay}&quot;)<br>
+占位符的使用(配置文件中有配置：time.fixedDelay=5000)</li>
+<li>fixedRate<br>
+上一次开始执行时间点之后多长时间再执行。</li>
+<li>fixedRateString<br>
+与 5. fixedRate 意思相同，只是使用字符串的形式。唯一不同的是支持占位符。</li>
+<li>initialDelay<br>
+第一次延迟多长时间后再执行。<br>
+@Scheduled(initialDelay=1000, fixedRate=5000)</li>
+<li>initialDelayString<br>
+与 7. initialDelay 意思相同，只是使用字符串的形式。唯一不同的是支持占位符。</li>
+</ol>
+<h4 id="参考">参考</h4>
+<p><a href="https://www.jianshu.com/p/1defb0f22ed1">@Scheduled注解各参数详解</a></p>
+<p><a href="http://cron.qqe2.com/">在线Cron表达式网站</a></p>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://wqyuu.github.io/blog/post/ji-yu-springboot-yu-a-li-yun-shi-xian-mian-zhu-ce-deng-lu">
+              <h3 class="post-title">
+                下一篇：基于springboot与阿里云实现免注册登录
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+        
+          <div id="gitalk-container"></div>
+        
+
+        
+      
+
+      <div class="site-footer">
+  <div class="slogan">秉忠贞之志,守谦退之节</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  Powered by <a href="https://github.com/wqyuu" target="_blank">Wqyuu</a> | <a class="rss" href="https://wqyuu.github.io/blog/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+  
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+    <script>
+
+      var gitalk = new Gitalk({
+        clientID: 'ad662aee99e9d77de1aa',
+        clientSecret: 'b74b253f75d653647fccdfe37d7d554405fc6ddc',
+        repo: 'blog',
+        owner: 'wqyuu',
+        admin: ['wqyuu'],
+        id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+        distractionFreeMode: false  // Facebook-like distraction free mode
+      })
+
+      gitalk.render('gitalk-container')
+
+    </script>
+  
+
+  
+
+
+
+
+  </body>
+</html>

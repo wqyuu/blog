@@ -5,7 +5,7 @@
     
 <meta charset="utf-8" >
 
-<title>简单图解从零搭建SpringBoot | Wqyuu</title>
+<title>Springboot整合Elasticsearch（1） | Wqyuu</title>
 <meta name="description" content="秉忠贞之志,守谦退之节">
 
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
@@ -86,54 +86,98 @@
       <div class="content-container">
         <div class="post-detail">
           
-            <div class="feature-container" style="background-image: url('https://wqyuu.github.io/blog/post-images/jian-dan-tu-jie-cong-ling-da-jian-springboot.jpg')">
+            <div class="feature-container" style="background-image: url('https://wqyuu.github.io/blog/post-images/springboot-zheng-he-elasticsearch1.jpg')">
             </div>
           
-          <h2 class="post-title">简单图解从零搭建SpringBoot</h2>
+          <h2 class="post-title">Springboot整合Elasticsearch（1）</h2>
           <div class="post-info post-detail-info">
-            <span><i class="icon-calendar-outline"></i> 2019-02-17</span>
-            
-              <span>
-                <i class="icon-pricetags-outline"></i>
-                
-                  <a href="https://wqyuu.github.io/blog/tag/springboot">
-                    springboot
-                    
-                  </a>
-                
-              </span>
+            <span><i class="icon-calendar-outline"></i> 2019-03-20</span>
             
           </div>
           <div class="post-content">
-            <p>利用IDEA创建项目，也可以直接在<a href="https://start.spring.io/">https://start.spring.io/</a>上面创建</p>
-<!-- more -->
-<p><img src="https://wqyuu.github.io/blog/post-images/1582011714452.jpg" alt="" loading="lazy"><br>
-环境：windows<br>
-工具：IDEA<br>
-JDK版本：1.8<br>
-maven: 3.5<br>
-mysql: 5.6</p>
-<p><strong>首先利用IDEA创建项目，也可以直接在<a href="https://start.spring.io/">https://start.spring.io/</a>上面创建<br>
-步骤如图：</strong><br>
-（1）File-&gt;New-&gt;Project<br>
-<img src="https://img-blog.csdnimg.cn/20190828094629328.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"><br>
-（2）选中Spring Initializr 。JDK选中1.8，点击next<br>
-<img src="https://img-blog.csdnimg.cn/20190828095043865.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"><br>
-(3) 设置组名，项目名，版本等信息，然后next。（如果此处有报错Initialization failed for https://start.spring.io/ 查看这篇解决办法：<a href="https://blog.csdn.net/qq_37338761/article/details/100113712">解决SpringBoot项目报错（一）——Initialization failed</a>）<br>
-<img src="https://img-blog.csdnimg.cn/20190828095848772.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"><br>
-（4）勾选依赖 DevTools、Spring Web Starter、Thymeleaf、Spring Security、JPA 然后next<br>
-<img src="https://img-blog.csdnimg.cn/20190828100022359.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"><br>
-（5）选中项目保存位置，点Finish。等待创建完成！<br>
-<img src="https://img-blog.csdnimg.cn/20190828100251967.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"></p>
+            <p><strong>准备写写关于springboot整合Elasticsearch的内容，主要就是使用TransportClient去操作Elasticsearch，一篇文章太长了，于是分开几篇来写这部分内容。下面是第一篇内容，其他内容见后面博文。。。</strong></p>
+<hr>
+<p><em><strong>Java客户端使用TransportClient连接Elasticsearch，依赖与配置如下：</strong></em></p>
+<p><em>环境信息：<br>
+Java: 			1.8<br>
+Elasticsearch: 	2.4.6<br>
+springboot:		1.5.7</em></p>
+<h3 id="springboot版本与es依赖">springboot版本与es依赖</h3>
+<pre><code class="language-xml">    &lt;parent&gt;
+        &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-boot-starter-parent&lt;/artifactId&gt;
+        &lt;version&gt;1.5.7.RELEASE&lt;/version&gt;
+        &lt;relativePath/&gt; &lt;!-- lookup parent from repository --&gt;
+    &lt;/parent&gt;
+
+	&lt;dependencies&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-boot-starter-web&lt;/artifactId&gt;
+        &lt;/dependency&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-boot-starter-test&lt;/artifactId&gt;
+            &lt;scope&gt;test&lt;/scope&gt;
+        &lt;/dependency&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-boot-starter-data-elasticsearch&lt;/artifactId&gt;
+        &lt;/dependency&gt;
+  &lt;/dependencies&gt;
+</code></pre>
+<h3 id="applicationproperties">application.properties</h3>
+<pre><code class="language-yml">#elasticsearch
+elasticsearch.cluster.name=elasticsearch
+elasticsearch.host=127.0.0.1
+elasticsearch.port=9300
+</code></pre>
+<h3 id="es配置">ES配置</h3>
+<pre><code class="language-java">import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
+@Configuration
+public class ElasticsearchConfig {
+
+    @Value(&quot;${elasticsearch.host}&quot;)
+    private String esHost;
+
+    @Value(&quot;${elasticsearch.port}&quot;)
+    private int esPort;
+
+    @Value(&quot;${elasticsearch.cluster.name}&quot;)
+    private String esName;
+
+    @Bean
+    public TransportClient esClient() throws UnknownHostException {
+        Settings settings = Settings.builder()
+                .put(&quot;cluster.name&quot;, this.esName)
+                .build();
+
+        InetSocketTransportAddress master = new InetSocketTransportAddress(
+                InetAddress.getByName(esHost), esPort);
+        TransportClient client = TransportClient.builder().settings(settings).build().addTransportAddress(master);
+
+        return client;
+    }
+}
+~~~![](https://wqyuu.github.io/blog/post-images/1582013567771.jpg)</code></pre>
 
           </div>
         </div>
 
         
           <div class="next-post">
-            <a class="purple-link" href="https://wqyuu.github.io/blog/post/hello-gridea">
+            <a class="purple-link" href="https://wqyuu.github.io/blog/post/springboot-wen-jian-pei-zhi-lei">
               <h3 class="post-title">
-                下一篇：Hello Gridea
+                下一篇：SpringBoot文件配置类
               </h3>
             </a>
           </div>
