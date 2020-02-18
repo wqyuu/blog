@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://wqyuu.github.io/blog</id>
     <title>Wqyuu</title>
-    <updated>2020-02-18T09:10:58.495Z</updated>
+    <updated>2020-02-18T10:08:29.777Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://wqyuu.github.io/blog"/>
     <link rel="self" href="https://wqyuu.github.io/blog/atom.xml"/>
@@ -11,1378 +11,756 @@
     <icon>https://wqyuu.github.io/blog/favicon.ico</icon>
     <rights>All rights reserved 2020, Wqyuu</rights>
     <entry>
-        <title type="html"><![CDATA[SpringBoot监控与邮件提醒]]></title>
-        <id>https://wqyuu.github.io/blog/post/springboot-jian-kong-yu-you-jian-ti-xing</id>
-        <link href="https://wqyuu.github.io/blog/post/springboot-jian-kong-yu-you-jian-ti-xing">
+        <title type="html"><![CDATA[Ubuntu 16.04搭建JAVA环境]]></title>
+        <id>https://wqyuu.github.io/blog/post/ubuntu-1604-da-jian-java-huan-jing</id>
+        <link href="https://wqyuu.github.io/blog/post/ubuntu-1604-da-jian-java-huan-jing">
         </link>
-        <updated>2019-04-06T13:27:23.000Z</updated>
-        <content type="html"><![CDATA[<h3 id="简述">简述</h3>
-<p>利用<code>spring</code>框架中的任务注解<code>@Scheduled</code>定时执行任务，监控某个服务，并把其状态通过邮件发送给管理员。</p>
-<p>发邮件使用<code>springboot</code>的<code>JavaMailSender</code>类。这是一个很通用的工具接口，在<code>springboot</code>中只需要引入一个<code>maven</code>依赖，无需任何配置就可以从容地进行开发工作，简单快捷高效。</p>
-<h3 id="以监控elasticsearch集群的健康状态为例">以监控Elasticsearch集群的健康状态为例：</h3>
-<h4 id="添加maven依赖">添加maven依赖</h4>
-<p>确保先增加过<code>springboot</code>依赖之后，再增加以下依赖</p>
-<pre><code class="language-xml">        &lt;!-- https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient --&gt;
-        &lt;dependency&gt;
-            &lt;groupId&gt;org.apache.httpcomponents&lt;/groupId&gt;
-            &lt;artifactId&gt;httpclient&lt;/artifactId&gt;
-            &lt;version&gt;4.5.2&lt;/version&gt;
-        &lt;/dependency&gt;
-        &lt;!--mail--&gt;
-        &lt;dependency&gt;
-            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
-            &lt;artifactId&gt;spring-boot-starter-mail&lt;/artifactId&gt;
-        &lt;/dependency&gt;
-</code></pre>
-<h4 id="增加applicationproperties">增加application.properties</h4>
-<p>需要替换为自己邮箱协议与密码，发送方必须要开启smtp。我这里使用的QQ邮箱，设置方法见<a href="https://service.mail.qq.com/cgi-bin/help?subtype=1&amp;&amp;id=14&amp;&amp;no=1000898">QQ邮件开启smtp服务</a></p>
-<pre><code class="language-java"># mail 
-spring.mail.host=smtp.qq.com
-spring.mail.username=1234567835@qq.com
-spring.mail.password=lassssssyxvudibh
-spring.mail.properties.mail.stmp.auth=true
-</code></pre>
-<blockquote>
-<p>注意：在spring.mail.password处的值是需要在邮箱设置里面生成的授权码，这个不是真实的密码。</p>
-</blockquote>
-<h4 id="增加监控类">增加监控类</h4>
-<p>其中<code>HEALTH_CHECK_API</code>可替换为自己的服务监控接口</p>
-<pre><code class="language-java">import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
-
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-
-@Component
-public class ESMonitor {
-
-    private static final String HEALTH_CHECK_API = &quot;http://192.138.131.12:9200/_cluster/health&quot;;
-
-    private static final String GREEN = &quot;green&quot;;
-    private static final String YELLOW = &quot;yellow&quot;;
-    private static final String RED = &quot;red&quot;;
-
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    @Autowired
-    private JavaMailSender mailSender;
-
-    @Scheduled(fixedDelay=5000)
-    public void healthCheck(){
-        HttpClient httpClient = HttpClients.createDefault();
-
-        HttpGet get = new HttpGet(HEALTH_CHECK_API);
-
-        try {
-            HttpResponse response = httpClient.execute(get);
-            if(response.getStatusLine().getStatusCode()!=HttpServletResponse.SC_OK){
-                System.out.println(&quot;Can not access ES Service normally! Please check the server.&quot;);
-            }else {
-                String body = EntityUtils.toString(response.getEntity(),&quot;UTF-8&quot;);
-                JsonNode jsonNode =  objectMapper.readTree(body);
-                String status = jsonNode.get(&quot;status&quot;).asText();
-                String msg = &quot;&quot;;
-                boolean isNormally = false;
-                switch (status){
-                    case GREEN:
-                        msg =&quot;ES server run normally.&quot;;
-                        isNormally = true;
-                        break;
-                    case YELLOW:
-                        msg =&quot;ES server gets status yellow!&quot;;
-                        break;
-                    case RED:
-                        msg =&quot;ES server gets status red!&quot;;
-                        break;
-                    default:
-                        msg =&quot;Unknow ES server status:&quot;+status ;
-                        break;
-                }
-                if(!isNormally){
-                    sendAlertMessage(msg);
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-
-    private void sendAlertMessage(String message){
-        SimpleMailMessage mailMessage = new SimpleMailMessage();
-        mailMessage.setFrom(&quot;1234567835@qq.com&quot;);
-        mailMessage.setTo(&quot;1234567835@qq.com&quot;);
-        mailMessage.setSubject(&quot;【警告】ES服务监控&quot;);
-        mailMessage.setText(message);
-
-        mailSender.send(mailMessage);
-    }
-
-}
-</code></pre>
-<p>这样就可以简单的监控服务是否健康了。</p>
-<h3 id="尾巴">尾巴</h3>
-<p>其中@Scheduled注解的参数解释：</p>
+        <updated>2019-05-13T12:59:33.000Z</updated>
+        <content type="html"><![CDATA[<p>搭建环境：Ubuntu 16.04 ×64<br>
+JDK :jdk-8u171-linux-x64.tar.gz</p>
 <ol>
-<li>cron<br>
-语法@Scheduled(cron=&quot;1 * * * * * *&quot;)<br>
-表达式：[秒] [分] [小时] [日] [月] [周] [年]<br>
-其中年可以省略</li>
-<li>zone<br>
-时区，接收一个java.util.TimeZone#ID。cron表达式会基于该时区解析。默认是一个空字符串，即取服务器所在地的时区</li>
-<li>fixedDelay<br>
-上一次执行完毕时间点之后多长时间再执行。</li>
-<li>fixedDelayString<br>
-与 3. fixedDelay 意思相同，只是使用字符串的形式。唯一不同的是支持占位符<br>
-@Scheduled(fixedDelayString = &quot;${time.fixedDelay}&quot;)<br>
-占位符的使用(配置文件中有配置：time.fixedDelay=5000)</li>
-<li>fixedRate<br>
-上一次开始执行时间点之后多长时间再执行。</li>
-<li>fixedRateString<br>
-与 5. fixedRate 意思相同，只是使用字符串的形式。唯一不同的是支持占位符。</li>
-<li>initialDelay<br>
-第一次延迟多长时间后再执行。<br>
-@Scheduled(initialDelay=1000, fixedRate=5000)</li>
-<li>initialDelayString<br>
-与 7. initialDelay 意思相同，只是使用字符串的形式。唯一不同的是支持占位符。</li>
+<li>
+<p>首先下载linux对应的安装包<br>
+下载地址：<a href="http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html">http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html</a><br>
+下载完成后，Linux默认下载位置在当前目录下的Download或下载文件夹下，通过命令cd ~/Downloads或cd  ~/下载即可查看到对应的文件。</p>
+</li>
+<li>
+<p>解压安装包jdk-8u171-linux-x64.tar.gz<br>
+tar -zxvf jdk-8u171-linux-x64.tar.gz</p>
+</li>
+<li>
+<p>将解压后的文件夹移到/usr/lib目录下<br>
+切换到 /usr/lib目录下<br>
+cd  /usr/lib<br>
+并新建jdk目录<br>
+sudo mkdir jdk</p>
+</li>
+<li>
+<p>将解压的jdk文件复制到新建的/usr/lib/jdk目录下来<br>
+sudo mv ~/jdk1.8.0_171/usr/lib/jdk<br>
+执行命令后可到 usr/lib/jdk 目录下查看是否复制成功</p>
+</li>
+<li>
+<p>配置java环境变量<br>
+这里是将环境变量配置在etc/profile，即为所有用户配置JDK环境。<br>
+使用命令打开/etc/profile文件<br>
+sudo vi /etc/profile<br>
+在末尾添加以下几行文字：</p>
+<pre><code class="language-config">#set java env
+export JAVA_HOME=/usr/lib/jdk/jdk1.8.0_171
+export JRE_HOME=${JAVA_HOME}/jre    
+export CLASSPATH=.:${JAVA_HOME}/lib:${JRE_HOME}/lib    
+export PATH=${JAVA_HOME}/bin:$PATH 
+</code></pre>
+</li>
+<li>
+<p>执行命令使修改立即生效`<br>
+source /etc/profile</p>
+</li>
+<li>
+<p>配置软连接<br>
+软连接相当于windows系统中的快捷键，部分软件可能会从/usr/bin目录下查找Java，因此添加该软连接防止其他软件查找不到的情况。</p>
+</li>
 </ol>
-<h4 id="参考">参考</h4>
-<p><a href="https://www.jianshu.com/p/1defb0f22ed1">@Scheduled注解各参数详解</a></p>
-<p><a href="http://cron.qqe2.com/">在线Cron表达式网站</a></p>
+<pre><code>sudo update-alternatives --install /usr/bin/java  java  /usr/lib/jdk/jdk1.8.0_171/bin/java 300   
+sudo update-alternatives --install /usr/bin/javac  javac  /usr/lib/jdk/jdk1.8.0_171/bin/javac 300 
+扩展：在Ubuntu中通过update-alternatives切换jdk版本
+</code></pre>
+<ol start="8">
+<li>测试安装是否成功<br>
+在终端输入，出现版本号则表示安装成功<br>
+java -version</li>
+</ol>
+<figure data-type="image" tabindex="1"><img src="https://wqyuu.github.io/blog/post-images/1582020044962.jpg" alt="" loading="lazy"></figure>
 ]]></content>
     </entry>
     <entry>
-        <title type="html"><![CDATA[基于springboot与阿里云实现免注册登录]]></title>
-        <id>https://wqyuu.github.io/blog/post/ji-yu-springboot-yu-a-li-yun-shi-xian-mian-zhu-ce-deng-lu</id>
-        <link href="https://wqyuu.github.io/blog/post/ji-yu-springboot-yu-a-li-yun-shi-xian-mian-zhu-ce-deng-lu">
+        <title type="html"><![CDATA[Oracle数据库批量操作]]></title>
+        <id>https://wqyuu.github.io/blog/post/oracle-shu-ju-ku-pi-liang-cao-zuo</id>
+        <link href="https://wqyuu.github.io/blog/post/oracle-shu-ju-ku-pi-liang-cao-zuo">
         </link>
-        <updated>2019-03-28T12:24:09.000Z</updated>
-        <summary type="html"><![CDATA[<p><em>在自己学习慕课网瓦力老师的课程时，总结了基于springboot与阿里云实现免注册登录的实现。下面是整体的实现过程</em></p>
-]]></summary>
-        <content type="html"><![CDATA[<p><em>在自己学习慕课网瓦力老师的课程时，总结了基于springboot与阿里云实现免注册登录的实现。下面是整体的实现过程</em></p>
-<!-- more -->
-<h3 id="简介">简介</h3>
+        <updated>2019-05-12T11:57:24.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="一次对sql修改优化操作速度的记录">一次对SQL修改，优化操作速度的记录</h2>
+<p>我需要把edit_stu表数据查出来批量插入到student_m中，<br>
+由于SQL批量操作执行速度特别慢，尝试更换SQL语句解决速度问题<br>
+根据需要我有两个方法做这个批量操作：</p>
+<ul>
+<li>方法1：</li>
+</ul>
+<pre><code class="language-xml">	&lt;insert id=&quot;insert1&quot; parameterType=&quot;java.util.HashMap&quot;&gt;
+		 begin
+        &lt;foreach collection=&quot;list&quot; item=&quot;item&quot; index=&quot;index&quot; separator=&quot;;&quot;&gt;
+        	 insert into student_m ( VERSION_ID, SYS_ID)
+        values
+            ( #{item.versionId,jdbcType=VARCHAR},
+			#{item.sysId,jdbcType=VARCHAR}
+        &lt;/foreach&gt;
+        ;end;
+    &lt;/insert&gt;
+</code></pre>
+<ul>
+<li>方法2</li>
+</ul>
+<pre><code class="language-xml"> &lt;!--拷贝数据到查询表--&gt;
+    &lt;insert id=&quot;insertCurrentBySelect&quot;  parameterType=&quot;java.util.HashMap&quot;&gt;
+    	INSERT INTO  student_m ( VERSION_ID, SYS_ID)
+	    SELECT   VERSION_ID, SYS_ID
+      	FROM  edit_stu
+	    WHERE VERSION_ID=#{versionId,jdbcType=VARCHAR}
+    &lt;/insert&gt;
+</code></pre>
+<h2 id="两个方法操作速度对比">两个方法操作速度对比：</h2>
+<table>
+<thead>
+<tr>
+<th>数据量</th>
+<th>方法1</th>
+<th>方法2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>50</td>
+<td>2s</td>
+<td>2.5s</td>
+</tr>
+<tr>
+<td>500</td>
+<td>2.5s</td>
+<td>5.2s</td>
+</tr>
+</tbody>
+</table>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[MyBatis对于Java对象里的枚举类型处理]]></title>
+        <id>https://wqyuu.github.io/blog/post/mybatis-dui-yu-java-dui-xiang-li-de-mei-ju-lei-xing-chu-li</id>
+        <link href="https://wqyuu.github.io/blog/post/mybatis-dui-yu-java-dui-xiang-li-de-mei-ju-lei-xing-chu-li">
+        </link>
+        <updated>2019-05-10T12:54:48.000Z</updated>
+        <content type="html"><![CDATA[<hr>
+<p>mybatis里怎么处理枚举类型属性的增删改查呢？</p>
+<p>要求：</p>
+<p>插入的时候，会用枚举的定义插入数据库，我们希望在数据库中看到的是数字或者其他东西；</p>
+<p>查询的时候，数据库的值可以自动转换为我们对应的枚举值。</p>
+<p>举例，我有一个这样的枚举类型：</p>
+<pre><code class="language-java">package cn.com.shuyangyang.domain;  
+  
+public enum UserStatus {  
+  
+    /** 无效*/  
+    DISABLED(0),  
+    /** 有效 */  
+    AVAILABLE(1);  
+      
+    private int status;  
+      
+    UserStatus(int status){  
+        this.status = status;  
+    }  
+  
+    public int getStatus() {  
+        return status;  
+    }  
+      
+}  
+</code></pre>
+<p>我们插入数据库中，数据库应该为我们保存0或者1</p>
+<p>我们可以使用mybatis自带的枚举类型EnumOrdinalTypeHandler</p>
+<p>举例如下：</p>
+<pre><code class="language-xml">&lt;insert id=&quot;addUser&quot; parameterType=&quot;User&quot;&gt;  
+    INSERT INTO t_user(USER_ID,USER_NAME,LOGIN_NAME,  
+    LOGIN_PASSWORD,USER_STATUS,CREATE_TIME,UPDATE_TIME)  
+    VALUES(  
+        #{user_id},  
+        #{user_name},  
+        #{login_name},  
+        #{login_password},  
+        #{user_status, typeHandler=org.apache.ibatis.type.EnumOrdinalTypeHandler},  
+        #{create_time},  
+        #{update_time}  
+    )  
+&lt;/insert&gt;
+</code></pre>
+<p>我们的UserStatus插入的时候是UserStatus.AVAILABLE</p>
+<p>执行完毕后，看结果：</p>
+<figure data-type="image" tabindex="1"><img src="https://img-blog.csdnimg.cn/20190506101619818.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"></figure>
+<p>看，是不是结果是我们期望的那样。</p>
+<p>但是问题来了？</p>
+<p>我们查询的时候报错了：Error querying database.  Cause: java.lang.IllegalArgumentException: No enum constant cn.com.shuyangyang.mybatis.UserStatus.1</p>
+<p>我们可以自定义这样的一个EnumStatusHandler：</p>
+<pre><code class="language-java">package cn.com.shuyangyang.mybatis;  
+  
+import java.sql.CallableStatement;  
+import java.sql.PreparedStatement;  
+import java.sql.ResultSet;  
+import java.sql.SQLException;  
+  
+import org.apache.ibatis.type.BaseTypeHandler;  
+import org.apache.ibatis.type.JdbcType;  
+  
+/** 
+ * Mybatis自定义转换类型 
+ * @author ShuYangYang 
+ * E-Mail:shuyangyang@aliyun.com 
+ * http://www.shuyangyang.com.cn 
+ * Date:2015年1月26日下午10:12:54 
+ * 
+ */  
+public class EnumStatusHandler extends BaseTypeHandler&lt;UserStatus&gt; {  
+      
+    private Class&lt;UserStatus&gt; type;  
+       
+    private final UserStatus[] enums;  
+   
+    /** 
+     * 设置配置文件设置的转换类以及枚举类内容，供其他方法更便捷高效的实现 
+     * @param type 配置文件中设置的转换类 
+     */  
+    public EnumStatusHandler(Class&lt;UserStatus&gt; type) {  
+        if (type == null)  
+            throw new IllegalArgumentException(&quot;Type argument cannot be null&quot;);  
+        this.type = type;  
+        this.enums = type.getEnumConstants();  
+        if (this.enums == null)  
+            throw new IllegalArgumentException(type.getSimpleName()  
+                    + &quot; does not represent an enum type.&quot;);  
+    }  
+  
+    @Override  
+    public void setNonNullParameter(PreparedStatement ps, int i,  
+            UserStatus parameter, JdbcType jdbcType) throws SQLException {  
+        // baseTypeHandler已经帮我们做了parameter的null判断  
+        ps.setInt(i, parameter.getStatus());  
+          
+    }  
+  
+    @Override  
+    public UserStatus getNullableResult(ResultSet rs, String columnName)  
+            throws SQLException {  
+        // 根据数据库存储类型决定获取类型，本例子中数据库中存放INT类型  
+        int i = rs.getInt(columnName);  
+           
+        if (rs.wasNull()) {  
+            return null;  
+        } else {  
+            // 根据数据库中的code值，定位EnumStatus子类  
+            return locateEnumStatus(i);  
+        }  
+    }  
+  
+    @Override  
+    public UserStatus getNullableResult(ResultSet rs, int columnIndex)  
+            throws SQLException {  
+        // 根据数据库存储类型决定获取类型，本例子中数据库中存放INT类型  
+        int i = rs.getInt(columnIndex);  
+        if (rs.wasNull()) {  
+            return null;  
+        } else {  
+            // 根据数据库中的code值，定位EnumStatus子类  
+            return locateEnumStatus(i);  
+        }  
+    }  
+  
+    @Override  
+    public UserStatus getNullableResult(CallableStatement cs, int columnIndex)  
+            throws SQLException {  
+        // 根据数据库存储类型决定获取类型，本例子中数据库中存放INT类型  
+        int i = cs.getInt(columnIndex);  
+        if (cs.wasNull()) {  
+            return null;  
+        } else {  
+            // 根据数据库中的code值，定位EnumStatus子类  
+            return locateEnumStatus(i);  
+        }  
+    }  
+      
+    /** 
+     * 枚举类型转换，由于构造函数获取了枚举的子类enums，让遍历更加高效快捷 
+     * @param code 数据库中存储的自定义code属性 
+     * @return code对应的枚举类 
+     */  
+    private UserStatus locateEnumStatus(int code) {  
+        for(UserStatus status : enums) {  
+            if(status.getStatus()==(Integer.valueOf(code))) {  
+                return status;  
+            }  
+        }  
+        throw new IllegalArgumentException(&quot;未知的枚举类型：&quot; + code + &quot;,请核对&quot; + type.getSimpleName());  
+    }  
+  
+}  
+</code></pre>
+<p>mapper.xml里这样配置：</p>
+<p>XML/HTML Code复制内容到剪贴板<br>
+<resultMap type="User" id="userResult"><br>
+……省略其他属性配置<br>
+<result column="USER_STATUS" property="user_status" typeHandler="cn.com.shuyangyang.mybatis.EnumStatusHandler"/><br>
+……省略其他属性配置<br>
+</resultMap><br>
+现在来看看结果：</p>
 <blockquote>
-<p>阿里云短信服务提供短信发送API接口SendSms和SendBatchSms，分别用于单个模板的短信单独或批量发送、多个短信模板的短信批量发送。短信服务（Short Message Service）是阿里云为用户提供的一种通信服务的能力。支持向国内和国际快速发送验证码、短信通知和推广短信</p>
+<p>[User [user_id=782cba19-559f-41c3-a1b0-25fcac4cf118, user_name=系统管理员, login_name=admin, login_password=admin,user_status=AVAILABLE, create_time=Mon Jan 26 21:17:09 CST 2015, update_time=Mon Jan 26 21:17:09 CST 2015]]</p>
 </blockquote>
-<p>基于<code>springboot</code>与阿里云实现免注册登录，类似常用网站的免注册登录，通过使用阿里云短信服务发送验证码，并在<code>redis</code>中缓存验证码信息，过期清除，以实现通过手机号注册，接到验证码在一分钟内填写验证码，并跳转登录的功能。</p>
-<p>这里只有后端的代码实现部分，前端页面等全部信息可以到github地址上面获取：<br>
-<a href="https://github.com/wqyuu/springboot-es">https://github.com/wqyuu/springboot-es</a></p>
-<hr>
-<h3 id="实战">实战</h3>
-<p>项目基本环境以及配置：<br>
-<a href="https://blog.csdn.net/qq_37338761/article/details/102501961">https://blog.csdn.net/qq_37338761/article/details/102501961</a></p>
-<hr>
-<h4 id="pomxml中添加依赖">pom.xml中添加依赖</h4>
-<pre><code class="language-xml">&lt;dependency&gt;
-    &lt;groupId&gt;com.aliyun&lt;/groupId&gt;
-    &lt;artifactId&gt;aliyun-java-sdk-core&lt;/artifactId&gt;
-    &lt;version&gt;3.2.3&lt;/version&gt;
-    &lt;!--&lt;scope&gt;system&lt;/scope&gt;--&gt;
-    &lt;!--&lt;systemPath&gt;${project.basedir}/lib/aliyun-java-sdk-core-3.2.3.jar&lt;/systemPath&gt;--&gt;
-&lt;/dependency&gt;
-&lt;dependency&gt;
-    &lt;groupId&gt;com.aliyun&lt;/groupId&gt;
-    &lt;artifactId&gt;aliyun-java-sdk-dysmsapi&lt;/artifactId&gt;
-    &lt;version&gt;1.0.0&lt;/version&gt;
-    &lt;!--&lt;scope&gt;system&lt;/scope&gt;--&gt;
-    &lt;!--&lt;systemPath&gt;${project.basedir}/lib/aliyun-java-sdk-dysmsapi-1.0.0.jar&lt;/systemPath&gt;--&gt;
-&lt;/dependency&gt;
+<p>完美结果。</p>
+<p>转载自： http://www.shuyangyang.com.cn/jishuliangongfang/Javabiancheng/2015-01-26/229.html</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[VirtualBox+ubantu16.04联网]]></title>
+        <id>https://wqyuu.github.io/blog/post/virtualboxubantu1604-lian-wang</id>
+        <link href="https://wqyuu.github.io/blog/post/virtualboxubantu1604-lian-wang">
+        </link>
+        <updated>2019-05-06T07:51:45.000Z</updated>
+        <content type="html"><![CDATA[<h2 id="virtualboxubantu1604联网">VirtualBox+ubantu16.04联网</h2>
+<p>一、安装virtualbox后会自动安装一个虚拟网卡，一般来说，名字会是VirtualBox Host-Only Network<br>
+<img src="https://img-blog.csdnimg.cn/20190506174943352.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"><br>
+二、右键已连接上的网络（可能是以太网也可以是wifi）-&gt; 属性 -&gt;共享<br>
+<img src="https://img-blog.csdnimg.cn/2019050617500488.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"><br>
+三、修改这个虚拟网卡的ipv4设置（右键虚拟网卡-&gt;属性-&gt;ipv4协议-&gt;属性）<br>
+<img src="https://img-blog.csdnimg.cn/20190506175016812.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"><br>
+四、修改virtualbox上的虚拟机的网卡设置为Host-Only 。这里注意！一定按照图示设置，就算使用wifi，也要填接入网线<br>
+<img src="https://img-blog.csdnimg.cn/20190506175031631.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"><br>
+五、然后配置虚拟机的网络配置文件</p>
+<ol>
+<li>
+<p>输入ifconfig命令查看网卡信息，下图红圈处就是网卡名称。<br>
+<img src="https://img-blog.csdnimg.cn/20190506175244478.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"></p>
+</li>
+<li>
+<p>配置网卡文件<br>
+注意：不同的linux系统，网卡配置文件是不同的，这里ubuntu的网卡配置文件是/etc/network/interfaces<br>
+输入下面命令进行编辑网卡文件<br>
+sudo vi /etc/network/interfaces<br>
+默认的文件内容如下：</p>
+<blockquote>
+<p>auto lo iface lo inet loopback</p>
+</blockquote>
+<p>现在修改配置文件。修改方式有两种<br>
+方式一：静态ip<br>
+修改内容如下：下面的enp0s3需要改成自己的网卡名称，就是上面第一步的红圈信息。ip地址，掩码网关自己合理配置就行了。记得wq!保存退出。</p>
+<blockquote>
+<p>auto enp0s3<br>
+iface enp0s3 inet static<br>
+address 192.168.56.3<br>
+netmask 255.255.255.0<br>
+gateway  192.168.56.1<br>
+dns-nameservers 223.5.5.5</p>
+</blockquote>
+<p>方式二：动态获取ip配置</p>
+<blockquote>
+<p>auto enp0s3 	<br>
+iface enp0s3 inet dhcp</p>
+</blockquote>
+<p>注意上面的网卡写成自己的网卡名称。记得wq!保存退出。</p>
+</li>
+<li>
+<p>修改DNS服务器地址</p>
+<p>通过/etc/network/interfaces，在它的最后增加一句下面的内容：下面的223.5.5.5是阿里的dns地址，可以自己选择适合的dns地址。</p>
+<blockquote>
+<p>dns-nameservers 223.5.5.5</p>
+</blockquote>
+<blockquote>
+<p>重启网卡:   /etc/init.d/networking restart</p>
+</blockquote>
+<p>重启后DNS就生效了，这时候再看/etc/resolv.conf，最下面就多了一行：</p>
+<blockquote>
+<p>#Dynamic resolv.conf(5) file for glibc resolver(3) generated by resolvconf(8) 	 	# DO NOT EDIT THIS FILE BY HAND -- YOUR CHANGES WILL BE OVERWRITTEN 	 	<br>
+nameserver 223.5.5.5</p>
+</blockquote>
+</li>
+<li>
+<p>重启电脑<br>
+注意：不是重启网卡,一定要重启reboot重启电脑才行。<br>
+下面这些命令只能用来启动和关闭网卡，但是不能让修改的配置立即生效。</p>
+<blockquote>
+<p>/etc/init.d/networking restart 或者（下面是指定启动关闭某个网卡命令） ifdown enp0s3<br>
+（关闭网卡enp0s3） ifup   enp0s3    (启动网卡enp0s3)<br>
+sudo service network-manager restart</p>
+</blockquote>
+</li>
+</ol>
+<p>测试：ping www.baidu.com<br>
+<img src="https://img-blog.csdnimg.cn/20190506180838652.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"></p>
+<p>参照：<br>
+1.<a href="https://blog.csdn.net/stay_zezo/article/details/80718369">ubantu16.04联网</a><br>
+2.<a href="https://wqyuu.github.io/blog/post-images/1582019587188.jpg">Virtualbox下利用host-only连接方式实现虚拟机和物理机联网（包括wifi）</a></p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Docker下安装ElasticSearch]]></title>
+        <id>https://wqyuu.github.io/blog/post/docker-xia-an-zhuang-elasticsearch</id>
+        <link href="https://wqyuu.github.io/blog/post/docker-xia-an-zhuang-elasticsearch">
+        </link>
+        <updated>2019-05-03T06:50:06.000Z</updated>
+        <content type="html"><![CDATA[<ul>
+<li>
+<p><a href="https://blog.csdn.net/ityouknow/article/details/90899131">Docker 入门及安装[Docker 系列-1]</a></p>
+</li>
+<li>
+<p><a href="https://blog.csdn.net/qq_37338761/article/details/90697027">Docker安装及问题解决(ubuntu16.04)</a></p>
+</li>
+<li>
+<p>全文搜索属于最常见的需求，开源的 Elasticsearch （以下简称 Elastic）是目前全文搜索引擎的首选。</p>
+</li>
+<li>
+<p>它可以快速地储存、搜索和分析海量数据。维基百科、Stack Overflow、Github 都采用它。</p>
+</li>
+<li>
+<p>Elastic 的底层是开源库 Lucene。但是，你没法直接用 Lucene，必须自己写代码去调用它的接口。Elastic 是 Lucene 的封装，提供了 REST API 的操作接口，开箱即用。</p>
+</li>
+</ul>
+<h3 id="安装elasticsearch">安装ElasticSearch</h3>
+<h4 id="1-从docker仓库搜索elasticsearch">1. 从docker仓库搜索ElasticSearch</h4>
+<pre><code class="language-shell">$ docker search elasticsearch
 </code></pre>
-<h4 id="项目中添加阿里云的lib">项目中添加阿里云的lib</h4>
-<p>由于maven中没有aliyun的依赖，所以将lib放到根目录下面<br>
-<img src="https://img-blog.csdnimg.cn/20191022172954626.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"></p>
-<h4 id="配置文件增加redis配置-阿里云短信配置">配置文件增加redis配置、阿里云短信配置</h4>
-<p>redis直接配置本地的地址，我这里使用的是免密登录，开发环境可以这么做。<br>
-redis用来缓存短信的验证码，保留10分钟，过期删除</p>
-<pre><code class="language-properties"># redis config
-spring.redis.database=0
-spring.redis.host=127.0.0.1
-spring.redis.port=6379
-spring.redis.pool.max-idle=8
-spring.redis.timeout=3000
-#session
-spring.session.store-type=redis
-
-# 阿里云短信配置 注意替换自己申请的配置
-aliyun.sms.accessKey=LTAI4FeWmDfk8SErg2x6*****
-aliyun.sms.accessKeySecret=MbpEfvvJ1qQgzKJHUUlLlX******
-aliyun.sms.template.code=SMS_175533***
+<figure data-type="image" tabindex="1"><img src="https://img-blog.csdnimg.cn/2019060511251850.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"></figure>
+<h4 id="2选择一个版本拉取镜像-我安装的是246">2.选择一个版本，拉取镜像。我安装的是2.4.6</h4>
+<p>2.4.6是目前springboot支持的最高版本<br>
+<img src="https://img-blog.csdnimg.cn/20190605112719550.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"><br>
+参考：https://github.com/spring-projects/spring-data-elasticsearch/wiki/Spring-Data-Elasticsearch---Spring-Boot---version-matrix</p>
+<pre><code class="language-shell">$  docker pull elasticsearch:2.4.6
 </code></pre>
-<h4 id="controller">Controller</h4>
-<pre><code class="language-java">import com.wqy.springbootes.base.ApiResponse;
-import com.wqy.springbootes.base.LoginUserUtil;
-import com.wqy.springbootes.service.IUserService;
-import com.wqy.springbootes.service.ServiceResult;
-import org.apache.http.HttpStatus;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-
-@Controller
-public class UserController {
-
-    @Autowired
-    private IUserService userService;
-
-
-    @GetMapping(&quot;/user/login&quot;)
-    public String loginPage(){
-        return &quot;user/login&quot;;
-    }
-
-    @GetMapping(&quot;/user/center&quot;)
-    public String centerPage(){
-        return &quot;user/center&quot;;
-    }
-
-	@GetMapping(value = &quot;sms/code&quot;)
-	@ResponseBody
-	public ApiResponse smsCode(@RequestParam(&quot;telephone&quot;)String telephone){
-	
-	    if(!LoginUserUtil.checkTelephone(telephone)){
-	        return ApiResponse.ofMessage(HttpStatus.BAD_REQUEST.value(),&quot;请输入正确手机号&quot;);
-	    }
-	    ServiceResult&lt;String&gt; result = smsService.sendSms(telephone);
-	    if(result.isSuccess()){
-	        return ApiResponse.ofSuccess(&quot;&quot;);
-	    }else{
-	        return ApiResponse.ofMessage(HttpStatus.BAD_REQUEST.value(),result.getMessage());
-	    }
-	
-	}
+<p>查看镜像</p>
+<pre><code class="language-shell">$  docker images
+</code></pre>
+<figure data-type="image" tabindex="2"><img src="https://img-blog.csdnimg.cn/20190605113028725.png" alt="在这里插入图片描述" loading="lazy"></figure>
+<h4 id="3通过镜像启动一个容器并将9200和9300端口映射到本机">3.通过镜像，启动一个容器，并将9200和9300端口映射到本机</h4>
+<pre><code class="language-shell">$ docker run -d -p 9200:9200 -p 9300:9300 --name elasticsearch elasticsearch:2.4.6
+</code></pre>
+<h4 id="4-查看容器">4. 查看容器</h4>
+<pre><code class="language-shell">$ docker ps #查看已启动容器
+$ docker ps -a #查看所有容器，包括停止的
+</code></pre>
+<figure data-type="image" tabindex="3"><img src="https://img-blog.csdnimg.cn/2019060511362011.png" alt="在这里插入图片描述" loading="lazy"></figure>
+<h4 id="5查看是否安装成功">5.查看是否安装成功</h4>
+<pre><code class="language-shell">$ curl http://localhost:9200
+{
+  &quot;name&quot; : &quot;Sean Cassidy&quot;,
+  &quot;cluster_name&quot; : &quot;elasticsearch&quot;,
+  &quot;cluster_uuid&quot; : &quot;4F4r988CQsOPZZ7jbb9yWg&quot;,
+  &quot;version&quot; : {
+    &quot;number&quot; : &quot;2.4.6&quot;,
+    &quot;build_hash&quot; : &quot;5376dca9f70f3abef96a77f4bb22720ace8240fd&quot;,
+    &quot;build_timestamp&quot; : &quot;2017-07-18T12:17:44Z&quot;,
+    &quot;build_snapshot&quot; : false,
+    &quot;lucene_version&quot; : &quot;5.5.4&quot;
+  },
+  &quot;tagline&quot; : &quot;You Know, for Search&quot;
 }
-
 </code></pre>
-<h4 id="ismsservice接口">ISmsService接口</h4>
-<pre><code class="language-java">/**
- * 验证码服务
- */
-public interface ISmsService {
-
-    /**
-     * 发送验证码到指定手机 并缓存验证码 10分钟 及 请求间隔时间1分钟
-     * @param telephone
-     * @return
-     */
-    ServiceResult&lt;String&gt; sendSms(String telephone);
-
-    /**
-     * 获取缓存中的验证码
-     * @param telephone
-     * @return
-     */
-    String getSmsCode(String telephone);
-
-    /**
-     * 移除指定手机号的验证码缓存
-     * @param telephone
-     */
-    void remove(String telephone);
-
-}
-
-
+<h3 id="安装head插件">安装head插件</h3>
+<h4 id="1进入容器">1.进入容器</h4>
+<pre><code class="language-shell">$ docker exec -it d011a9da6f79/bin/bash #d011a9da6f79为容器id
 </code></pre>
-<h4 id="smsserviceimpl-实现类">SmsServiceImpl 实现类</h4>
-<pre><code class="language-java">import com.aliyuncs.DefaultAcsClient;
-import com.aliyuncs.IAcsClient;
-import com.aliyuncs.dysmsapi.model.v20170525.SendSmsRequest;
-import com.aliyuncs.dysmsapi.model.v20170525.SendSmsResponse;
-import com.aliyuncs.exceptions.ClientException;
-import com.aliyuncs.http.MethodType;
-import com.aliyuncs.profile.DefaultProfile;
-import com.aliyuncs.profile.IClientProfile;
-import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.stereotype.Service;
-
-import java.util.Random;
+<p>到/bin目录下，执行plugin命令</p>
+<pre><code class="language-shell">$ cd bin$ plugin install mobz/elasticsearch-head
+</code></pre>
+<figure data-type="image" tabindex="4"><img src="https://img-blog.csdnimg.cn/20190605113722321.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"></figure>
+<h4 id="2安装完成后浏览器访问">2.安装完成后，浏览器访问</h4>
+<p>http://localhost:9200/_plugin/head/</p>
+<p><img src="https://img-blog.csdnimg.cn/20190605113857324.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"><br>
+<strong>如果对你有帮助，点个赞吧！</strong>😘</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Zookeeper分布式锁的简单实现]]></title>
+        <id>https://wqyuu.github.io/blog/post/zookeeper-fen-bu-shi-suo-de-jian-dan-shi-xian</id>
+        <link href="https://wqyuu.github.io/blog/post/zookeeper-fen-bu-shi-suo-de-jian-dan-shi-xian">
+        </link>
+        <updated>2019-05-01T02:41:27.000Z</updated>
+        <content type="html"><![CDATA[<p><em><strong>使用InterProcessMutex实现</strong></em></p>
+<blockquote>
+<p>InterProcessMutex基于Zookeeper实现了分布式的公平可重入互斥锁，类似于单个JVM进程内的ReentrantLock</p>
+</blockquote>
+<h3 id="1初始化interprocessmutex">1.初始化InterProcessMutex</h3>
+<pre><code class="language-java">private  static InterProcessMutex mutex = new InterProcessMutex(client, &quot;/curator/lock&quot;); 
+</code></pre>
+<h3 id="2获取锁">2.获取锁</h3>
+<pre><code class="language-java">    //获得了锁
+    public static boolean acquire(long time, TimeUnit unit){
+    	try {
+			return mutex.acquire(time,unit);
+		} catch (Exception e) {
+			e.printStackTrace();
+			return false;
+		}
+    }
+</code></pre>
+<h3 id="3释放锁">3.释放锁</h3>
+<pre><code class="language-java">    //释放锁
+    public static void release(){
+    	try {
+			mutex.release();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+    }
+</code></pre>
+<h3 id="测试">测试：</h3>
+<pre><code class="language-java">import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-@Service
-public class SmsServiceImpl implements ISmsService ,InitializingBean {
-
-    @Value(&quot;${aliyun.sms.accessKey}&quot;)
-    private String accessKey;
-    @Value(&quot;${aliyun.sms.accessKeySecret}&quot;)
-    private String secertKey;
-    @Value(&quot;${aliyun.sms.template.code}&quot;)
-    private String templateCode;
-
-    private IAcsClient acsClient;
-
-    @Autowired
-    private RedisTemplate&lt;String, String&gt; redisTemplate;
-
-    private final static String SMS_CODE_CONTENT_PREFIX=&quot;SMS::CODE::CONTENT&quot;;
-
-    private final static String NUMS[]={&quot;0&quot;,&quot;1&quot;,&quot;2&quot;,&quot;3&quot;,&quot;4&quot;,&quot;5&quot;,&quot;6&quot;,&quot;7&quot;,&quot;8&quot;,&quot;9&quot;};
-
-    private static final Random random = new Random();
-
-    @Override
-    public ServiceResult&lt;String&gt; sendSms(String telephone) {
-        String gapKey = &quot;SMS::CODE::INTERVAL::&quot;+telephone;
-        String result = redisTemplate.opsForValue().get(gapKey);
-        if(result!= null){ // 判断是否已缓存验证码
-            return new ServiceResult&lt;String&gt;(false,&quot;请求次数太频繁&quot;);
-        }
-        String code =generateRandomSmsCode(); // 生成验证码
-        String templateParam = String.format(&quot;{\&quot;code\&quot;:\&quot;%s\&quot;}&quot;,code); 
-
-        //组装请求对象
-        SendSmsRequest request = new SendSmsRequest();
-
-        // 使用post提交
-        request.setMethod(MethodType.POST);
-        request.setPhoneNumbers(telephone);
-        request.setTemplateParam(templateParam);
-        request.setTemplateCode(templateCode);
-        request.setSignName(&quot;wqy-es&quot;);
-
-        boolean success = false;
-
-        try {
-            SendSmsResponse response = acsClient.getAcsResponse(request);
-            if(&quot;OK&quot;.equals(response.getCode())){
-                success = true;
-            }else{
-                //TODO  log
-            }
-        } catch (ClientException e) {
-            e.printStackTrace();
-        }
-        if(success){
-            redisTemplate.opsForValue().set(gapKey,code,60,TimeUnit.SECONDS);
-            redisTemplate.opsForValue().set(SMS_CODE_CONTENT_PREFIX+telephone,code,10,TimeUnit.MINUTES);
-            return ServiceResult.of(code);
-        }else{
-            return new ServiceResult&lt;String&gt;(false,&quot;系统忙，稍后重试&quot;);
-        }
-    }
-
-    @Override
-    public String getSmsCode(String telephone) {
-        return this.redisTemplate.opsForValue().get(SMS_CODE_CONTENT_PREFIX+telephone);
-    }
-
-    @Override
-    public void remove(String telephone) {
-        this.redisTemplate.delete(SMS_CODE_CONTENT_PREFIX+telephone);
-    }
-
-    @Override
-    public void afterPropertiesSet() throws Exception {
-        // 设置超时时间
-        System.setProperty(&quot;sun.net.client.defaultConnectTimeout&quot;,&quot;10000&quot;);
-        System.setProperty(&quot;sun.net.client.defaultReadTimeout&quot;,&quot;10000&quot;);
-
-        IClientProfile profile = DefaultProfile.getProfile(&quot;cn-beijing&quot;,accessKey,secertKey);
-
-        String product = &quot;Dysmsapi&quot;;
-        String domain = &quot;dysmsapi.aliyuncs.com&quot;;
-
-        DefaultProfile.addEndpoint(&quot;cn-beijing&quot;,&quot;cn-beijing&quot;,product,domain);
-        // 初始化短信客户端
-        this.acsClient = new DefaultAcsClient(profile);
-
-
-
-    }
-
-    private static String generateRandomSmsCode(){
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i &lt;6 ; i++) {
-            int index = random.nextInt(10);
-            sb.append(NUMS[index]);
-        }
-        return sb.toString();
-    }
-}
-</code></pre>
-<h3 id="结语">结语</h3>
-<p>springboot可以很方便的整合各种常用框架，提升开发效率</p>
-<p>免注册登录功能极大提升用户体验，虽然说需要后台帮助注册用户，这里要处理好登录之后，用户可以修改用户名的部分。</p>
-<p>阿里云短信服务需要自己到阿里云官网申请，阿里云官网也包括JAVA API，使用示例，短信模板，短信签名。</p>
-<h3 id="参考">参考</h3>
-<ul>
-<li>
-<p>阿里云短信服务  <a href="https://www.aliyun.com/citiao/1792456.html">https://www.aliyun.com/citiao/1792456.html</a></p>
-</li>
-<li>
-<p>BAT大牛亲授基于ElasticSearch的搜房网实战 <a href="https://coding.imooc.com/class/167.html">https://coding.imooc.com/class/167.html</a></p>
-</li>
-</ul>
-]]></content>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[Springboot整合Elasticsearch（6）]]></title>
-        <id>https://wqyuu.github.io/blog/post/springboot-zheng-he-elasticsearch6</id>
-        <link href="https://wqyuu.github.io/blog/post/springboot-zheng-he-elasticsearch6">
-        </link>
-        <updated>2019-03-27T13:27:12.000Z</updated>
-        <content type="html"><![CDATA[<h2 id="elasticsearch地理坐标与百度地图">Elasticsearch地理坐标与百度地图</h2>
-<p>想要使用百度地图，可以在百度地图的控制台免费注册，然后使用，控制台地址：<a href="http://lbsyun.baidu.com/apiconsole/center#/home">http://lbsyun.baidu.com/apiconsole/center#/home</a><br>
-我使用的百度地图版本是v4<br>
-LBS.云服务接口文档：<a href="http://lbsyun.baidu.com/index.php?title=lbscloud/api/geodataV4">http://lbsyun.baidu.com/index.php?title=lbscloud/api/geodataV4</a></p>
-<h3 id="api接口初始化">API接口初始化</h3>
-<p>BAIDU_MAP_KEY 为自己的ak,需要在控制台创建应用</p>
-<pre><code class="language-java">    private static final String BAIDU_MAP_KEY = &quot;aSg2jDQuYk9PaeeRqCb7rG6seU123456&quot;;
-
-    private static final String BAIDU_MAP_GEOCONV_API = &quot;http://api.map.baidu.com/geocoding/v3/?&quot;;
-
-    // 百度地图API ：http://lbsyun.baidu.com/index.php?title=webapi/guide/webservice-geocoding
-
-    //http://api.map.baidu.com/geocoding/v3/?address=%E5%8C%97%E4%BA%AC%E5%B8%82%E6%B5%B7%E6%B7%80%E5%8C%BA%E4%B8%8A%E5%9C%B0%E5%8D%81%E8%A1%9710%E5%8F%B7&amp;output=json&amp;ak=qSg2jDQuYk9PaVBRqCb7rG6seU0gmBsT&amp;callback=showLocation
-    /**
-     * POI数据管理接口
-     */
-    private static final String LBS_CREATE_API = &quot;http://api.map.baidu.com/geodata/v4/poi/create&quot;;
-
-    private static final String LBS_QUERY_API = &quot;http://api.map.baidu.com/geodata/v4/poi/list?&quot;;
-
-    private static final String LBS_UPDATE_API = &quot;http://api.map.baidu.com/geodata/v4/poi/update&quot;;
-
-    private static final String LBS_DELETE_API = &quot;http://api.map.baidu.com/geodata/v4/poi/delete&quot;;
-</code></pre>
-<h3 id="上传坐标">上传坐标</h3>
-<p>虎鲸数据管理平台 v3链接：<a href="http://lbsyun.baidu.com/data/mydata#/?_k=awsg5v">http://lbsyun.baidu.com/data/mydata#/?_k=awsg5v</a></p>
-<pre><code class="language-java">    public ServiceResult lbsUpload(BaiduMapLocation location, String title,
-                                   String address,
-                                   long houseId, int price,
-                                   int area) {
-        HttpClient httpClient = HttpClients.createDefault();
-        List&lt;NameValuePair&gt; nvps = new ArrayList&lt;&gt;();
-        nvps.add(new BasicNameValuePair(&quot;latitude&quot;, String.valueOf(location.getLatitude())));
-        nvps.add(new BasicNameValuePair(&quot;longitude&quot;, String.valueOf(location.getLongitude())));
-        nvps.add(new BasicNameValuePair(&quot;coord_type&quot;, &quot;3&quot;)); // 百度坐标系
-        nvps.add(new BasicNameValuePair(&quot;geotable_id&quot;, &quot;1000006426&quot;));
-        // 需要在虎鲸数据管理平台 v3中创建表，除了基本的字段增加houseId、price、area
-        nvps.add(new BasicNameValuePair(&quot;ak&quot;, BAIDU_MAP_KEY));
-        nvps.add(new BasicNameValuePair(&quot;houseId&quot;, String.valueOf(houseId)));
-        nvps.add(new BasicNameValuePair(&quot;price&quot;, String.valueOf(price)));
-        nvps.add(new BasicNameValuePair(&quot;area&quot;, String.valueOf(area)));
-        nvps.add(new BasicNameValuePair(&quot;title&quot;, title));
-        nvps.add(new BasicNameValuePair(&quot;address&quot;, address));
-
-        HttpPost post;
-        JsonNode isjsonNode = isLbsDataExists(houseId);
-        if (null!=isjsonNode) {
-            List&lt;JsonNode&gt; nodeList =isjsonNode.findValues(&quot;pois&quot;);
-            if(null!=nodeList&amp;&amp;!nodeList.isEmpty()) {
-                JsonNode jsonNode =nodeList.get(0);
-                if(null!=jsonNode.get(&quot;id&quot;)){
-                    String id = jsonNode.get(&quot;id&quot;).asText();
-                    nvps.add(new BasicNameValuePair(&quot;id&quot;, id));
-                    post = new HttpPost(LBS_UPDATE_API);
-                }else {
-                    post = new HttpPost(LBS_CREATE_API);
-                }
-
-            }else {
-                post = new HttpPost(LBS_CREATE_API);
-            }
-
-        } else {
-            post = new HttpPost(LBS_CREATE_API);
-        }
-
-        try {
-            post.setEntity(new UrlEncodedFormEntity(nvps, &quot;UTF-8&quot;));
-            HttpResponse response = httpClient.execute(post);
-            String result = EntityUtils.toString(response.getEntity(), &quot;UTF-8&quot;);
-            if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
-                logger.error(&quot;Can not upload lbs data for response: &quot; + result);
-                return new ServiceResult(false, &quot;Can not upload baidu lbs data&quot;);
-            } else {
-                JsonNode jsonNode = objectMapper.readTree(result);
-                int  status = jsonNode.get(&quot;status&quot;).asInt();
-                if (status != 0) {
-                    String message = jsonNode.get(&quot;message&quot;).asText();
-                    logger.error(&quot;Error to upload lbs data for status: {}, and message: {}&quot;, status, message);
-                    return new ServiceResult(false, &quot;Error to upload lbs data&quot;);
-                } else {
-                    // int id = jsonNode.get(&quot;id&quot;).asInt();
-                    return ServiceResult.success();
-                }
-            }
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return new ServiceResult(false);
-    }
-</code></pre>
-<h3 id="判断坐标是否存在">判断坐标是否存在</h3>
-<pre><code class="language-java">    private JsonNode isLbsDataExists(Long houseId) {
-        HttpClient httpClient = HttpClients.createDefault();
-        StringBuilder sb = new StringBuilder(LBS_QUERY_API);
-        sb.append(&quot;geotable_id=&quot;).append(&quot;1000006426&quot;).append(&quot;&amp;&quot;)
-                .append(&quot;ak=&quot;).append(BAIDU_MAP_KEY).append(&quot;&amp;&quot;)
-                .append(&quot;houseId=&quot;).append(houseId).append(&quot;,&quot;).append(houseId);
-        HttpGet get = new HttpGet(sb.toString());
-        try {
-            HttpResponse response = httpClient.execute(get);
-            String result = EntityUtils.toString(response.getEntity(), &quot;UTF-8&quot;);
-            if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
-                logger.error(&quot;Can not get lbs data for response: &quot; + result);
-                return null;
-            }
-
-            JsonNode jsonNode = objectMapper.readTree(result);
-            int status = jsonNode.get(&quot;status&quot;).asInt();
-            if (status != 0) {
-                logger.error(&quot;Error to get lbs data for status: &quot; + status);
-                return null;
-            } else {
-                long size = jsonNode.get(&quot;size&quot;).asLong();
-                if (size &gt; 0) {
-                    return jsonNode;
-                } else {
-                    return null;
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-</code></pre>
-<h3 id="移除坐标">移除坐标</h3>
-<pre><code class="language-java">   public ServiceResult removeLbs(Long houseId) {
-        HttpClient httpClient = HttpClients.createDefault();
-        List&lt;NameValuePair&gt; nvps = new ArrayList&lt;&gt;();
-        nvps.add(new BasicNameValuePair(&quot;geotable_id&quot;, &quot;1000006426&quot;));
-        nvps.add(new BasicNameValuePair(&quot;ak&quot;, BAIDU_MAP_KEY));
-        nvps.add(new BasicNameValuePair(&quot;houseId&quot;, String.valueOf(houseId)));
-
-       JsonNode isjsonNode = isLbsDataExists(houseId);
-       if(null!=isjsonNode){
-           List&lt;JsonNode&gt; nodeList =isjsonNode.findValues(&quot;pois&quot;);
-           if(null!=nodeList&amp;&amp;nodeList.size()&gt;0){
-               Optional.ofNullable(nodeList.get(0).get(&quot;id&quot;)).ifPresent(n-&gt;{
-                   String id = nodeList.get(0).get(&quot;id&quot;).asText();
-                   nvps.add(new BasicNameValuePair(&quot;id&quot;, id));
-               });
-           }
-       }
-        HttpPost delete = new HttpPost(LBS_DELETE_API);
-        try {
-            delete.setEntity(new UrlEncodedFormEntity(nvps, &quot;UTF-8&quot;));
-            HttpResponse response = httpClient.execute(delete);
-            String result = EntityUtils.toString(response.getEntity(), &quot;UTF-8&quot;);
-            if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
-                logger.error(&quot;Error to delete lbs data for response: &quot; + result);
-                return new ServiceResult(false);
-            }
-
-            JsonNode jsonNode = objectMapper.readTree(result);
-            int status = jsonNode.get(&quot;status&quot;).asInt();
-            if (status != 0) {
-                String message = jsonNode.get(&quot;message&quot;).asText();
-                logger.error(&quot;Error to delete lbs data for message: &quot; + message);
-                return new ServiceResult(false, &quot;Error to delete lbs data for: &quot; + message);
-            }
-            return ServiceResult.success();
-        } catch (IOException e) {
-            logger.error(&quot;Error to delete lbs data.&quot;, e);
-            return new ServiceResult(false);
-        }
-    }
-</code></pre>
-<h3 id="通过地址获取地图坐标">通过地址获取地图坐标</h3>
-<pre><code class="language-java">   @Override
-    public ServiceResult&lt;BaiduMapLocation&gt; getBaiduMapLocation(String city, String address) {
-        String encodeAddress;
-
-        try {
-            encodeAddress = URLEncoder.encode(address, &quot;UTF-8&quot;);
-        } catch (UnsupportedEncodingException e) {
-            logger.error(&quot;Error to encode house address&quot;, e);
-            return new ServiceResult&lt;BaiduMapLocation&gt;(false, &quot;Error to encode hosue address&quot;);
-        }
-
-        HttpClient httpClient = HttpClients.createDefault();
-        StringBuilder sb = new StringBuilder(BAIDU_MAP_GEOCONV_API);
-        sb.append(&quot;address=&quot;).append(encodeAddress).append(&quot;&amp;&quot;)
-                .append(&quot;output=json&amp;&quot;)
-                .append(&quot;ak=&quot;).append(BAIDU_MAP_KEY);
-
-        HttpGet get = new HttpGet(sb.toString());
-        try {
-            HttpResponse response = httpClient.execute(get);
-            if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
-                return new ServiceResult&lt;BaiduMapLocation&gt;(false, &quot;Can not get baidu map location&quot;);
-            }
-
-            String result = EntityUtils.toString(response.getEntity(), &quot;UTF-8&quot;);
-            JsonNode jsonNode = objectMapper.readTree(result);
-            int status = jsonNode.get(&quot;status&quot;).asInt();
-            if (status != 0) {
-                return new ServiceResult&lt;BaiduMapLocation&gt;(false, &quot;Error to get map location for status: &quot; + status);
-            } {
-                BaiduMapLocation location = new BaiduMapLocation();
-                JsonNode jsonLocation = jsonNode.get(&quot;result&quot;).get(&quot;location&quot;);
-                location.setLongitude(jsonLocation.get(&quot;lng&quot;).asDouble());
-                location.setLatitude(jsonLocation.get(&quot;lat&quot;).asDouble());
-                return ServiceResult.of(location);
-            }
-
-        } catch (IOException e) {
-            logger.error(&quot;Error to fetch baidumap api&quot;, e);
-            return new ServiceResult&lt;BaiduMapLocation&gt;(false, &quot;Error to fetch baidumap api&quot;);
-        }
-    }
-</code></pre>
-<h2 id="elasticsearch-的geoboundingboxquery查询地理坐标信息">Elasticsearch 的geoBoundingBoxQuery查询地理坐标信息</h2>
-<p>Elasticsearch的地图坐标JavaApi:<br>
-<a href="https://www.elastic.co/guide/en/elasticsearch/client/java-api/2.4/java-geo-queries.html">https://www.elastic.co/guide/en/elasticsearch/client/java-api/2.4/java-geo-queries.html</a><br>
-首先在Elasticsearch中增加索引坐标属性<br>
-例：</p>
-<pre><code class="language-json">{
-  &quot;settings&quot;: {
-    &quot;number_of_replicas&quot;: 0,
-    &quot;number_of_shards&quot;: 5,
-    &quot;index.store.type&quot;: &quot;niofs&quot;,
-    &quot;index.query.default_field&quot;: &quot;title&quot;,
-    &quot;index.unassigned.node_left.delayed_timeout&quot;: &quot;5m&quot;
-  },
-  &quot;mappings&quot;: {
-    &quot;house&quot;: {
-      &quot;dynamic&quot;: &quot;strict&quot;,
-      &quot;_all&quot;: {
-        &quot;enabled&quot;: false
-      },
-      &quot;properties&quot;: {
-        &quot;Id&quot;: {
-          &quot;type&quot;: &quot;long&quot;
-        },
-        &quot;title&quot;: {
-          &quot;type&quot;: &quot;text&quot;,
-          &quot;index&quot;: &quot;analyzed&quot;,
-          &quot;analyzer&quot;: &quot;ik_smart&quot;,
-          &quot;search_analyzer&quot;: &quot;ik_smart&quot;
-        },
-        &quot;suggest&quot;: {
-          &quot;type&quot;: &quot;completion&quot;
-        },
-        &quot;location&quot;: {
-          &quot;type&quot;: &quot;geo_point&quot;
-        }
-      }
-    }
-  }
-}
-</code></pre>
-<p>可以通过postman直接post请求http://192.168.108.102:9200/test,在body中增加索引json。<br>
-然后查看head插件中是否生成成功。</p>
-<h4 id="java查询地理区域代码">java查询地理区域代码：</h4>
-<pre><code class="language-java">   public ServiceMultiResult&lt;Long&gt; mapQuery(MapSearch mapSearch) {
-        BoolQueryBuilder boolQueryBuilder = QueryBuilders.boolQuery();
-        boolQueryBuilder.filter(QueryBuilders.termQuery(HouseIndexKey.CITY_EN_NAME,mapSearch.getCityEnName()));
-        boolQueryBuilder.filter(
-                geoBoundingBoxQuery(&quot;location&quot;)
-                        .topLeft(mapSearch.getLeftLatitude(),mapSearch.getLeftLongitude())
-                        .bottomRight(mapSearch.getRightLatitude(),mapSearch.getRightLongitude())
-        );
-
-        SearchRequestBuilder searchRequestBuilder = this.esClient.prepareSearch(INDEX_NAME)
-                .setTypes(INDEX_TYPE)
-                .setQuery(boolQueryBuilder)
-                .addSort(HouseSort.getSortKey(mapSearch.getOrderBy()),SortOrder.valueOf(mapSearch.getOrderDirection()))
-                .setFrom(mapSearch.getStart())
-                .setSize(mapSearch.getSize());
-        List&lt;Long&gt; houseIds = new ArrayList&lt;&gt;();
-        SearchResponse response = searchRequestBuilder.get();
-        if(response.status()!=RestStatus.OK){
-            logger.warn(&quot;Search status is not ok for &quot;+ searchRequestBuilder);
-            return new ServiceMultiResult&lt;&gt;(0,houseIds);
-        }
-        for (SearchHit hit : response.getHits()) {
-            houseIds.add(Longs.tryParse(String.valueOf(hit.getSource().get(HouseIndexKey.HOUSE_ID))));
-        }
-        return new ServiceMultiResult&lt;&gt;(response.getHits().getTotalHits(),houseIds);
-    }
-</code></pre>
-]]></content>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[Springboot整合Elasticsearch（5）]]></title>
-        <id>https://wqyuu.github.io/blog/post/springboot-zheng-he-elasticsearch5</id>
-        <link href="https://wqyuu.github.io/blog/post/springboot-zheng-he-elasticsearch5">
-        </link>
-        <updated>2019-03-24T10:19:06.000Z</updated>
-        <content type="html"><![CDATA[<h3 id="es的java-api">ES的java api：</h3>
-<pre><code class="language-java">BoolQueryBuilder boolQuery = QueryBuilders.boolQuery().filter(“name”,name));
-
-SearchRequestBuilder requestBuilder = this.esClient.prepareSearch(INDEX_NAME)
-        .setTypes(INDEX_TYPE)
-        .setQuery(boolQuery)
-        .addAggregation(AggregationBuilders.terms(“agg_name”).field(“name”))
-	    .addAggregation(AggregationBuilders.terms(&quot;agg_salary&quot;).subAggregation(
-			AggregationBuilders.avg(&quot;total_salary&quot;).field(&quot;salary&quot;)
-			)
-		)   //在es的api中，多字段上的聚合操作需要用到子聚合(subAggregation)
-		.setSize(0);            
-logger.debug(requestBuilder.toString());
-SearchResponse response = requestBuilder.get();
-if(response.status()==RestStatus.OK){
-    Terms terms = response.getAggregations().get(“agg_name”);
-    if(terms.getBuckets()!=null&amp;&amp;!terms.getBuckets().isEmpty()){
-        //得到所有子聚合
-        Map subaggmap =terms.getBucketByKey(district).getAggregations().asMap();
-        //avg值获取方法
-        double avg_age= ((InternalAvg) subaggmap.get(&quot;avg_age&quot;)).getValue();
-        //sum值获取方法
-        double total_salary = ((InternalSum) subaggmap.get(&quot;total_salary&quot;)).getValue();
-        //记录数
-        terms.getBucketByKey(district).getDocCount();
-    }
-}else{
-    logger.warn(&quot;Failed to Aggregate for &quot;+”agg_name”);
-}
-</code></pre>
-<h4 id="其他特殊聚合">其他特殊聚合：</h4>
-<ul>
-<li>聚合后对Aggregation结果排序<pre><code class="language-java">   TermsBuilder teamAgg= AggregationBuilders.terms(&quot;team&quot;).order(Order.aggregation(&quot;total_salary &quot;, false);
-</code></pre>
-</li>
-<li>Aggregation结果条数的问题<br>
-默认情况下，search执行后，仅返回10条聚合结果，如果想反悔更多的结果，需要在构建TermsBuilder 时指定size：<pre><code class="language-java">TermsBuilder teamAgg= AggregationBuilders.terms(&quot;team&quot;).size(15);
-</code></pre>
-</li>
-</ul>
-<p>聚合操作主要是调用了SearchRequestBuilder的addAggregation方法，通常是传入一个TermsBuilder，子聚合调用TermsBuilder的subAggregation方法，可以添加的子聚合有TermsBuilder、SumBuilder、AvgBuilder、MaxBuilder、MinBuilder等常见的聚合操作。</p>
-<p>从实现上来讲，SearchRequestBuilder在内部保持了一个私有的 SearchSourceBuilder实例， SearchSourceBuilder内部包含一个List<AbstractAggregationBuilder>，每次调用addAggregation时会调用 SearchSourceBuilder实例，添加一个AggregationBuilder。<br>
-同样的，TermsBuilder也在内部保持了一个List<AbstractAggregationBuilder>，调用addAggregation方法（来自父类addAggregation）时会添加一个AggregationBuilder。</p>
-<p>参考：<a href="https://wqyuu.github.io/blog/post-images/1582013999793.jpg">ElasticSearch AggregationBuilders java api常用聚会查询</a></p>
-]]></content>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[Springboot整合Elasticsearch（4）]]></title>
-        <id>https://wqyuu.github.io/blog/post/springboot-zheng-he-elasticsearch4</id>
-        <link href="https://wqyuu.github.io/blog/post/springboot-zheng-he-elasticsearch4">
-        </link>
-        <updated>2019-03-23T11:15:41.000Z</updated>
-        <content type="html"><![CDATA[<h3 id="suggest的自动补全与ik分词">suggest的自动补全与IK分词</h3>
-<p>IK分词安装方式可见 <a href="https://blog.csdn.net/qq_37338761/article/details/101438059">ElasticSearch安装中文分词</a></p>
-<h4 id="analyzerequestbuilder实现ik分词">AnalyzeRequestBuilder实现IK分词</h4>
-<p><em>Java代码</em></p>
-<pre><code class="language-java">// 调用 IK 分词
-AnalyzeRequestBuilder requestBuilder= new AnalyzeRequestBuilder(this.esClient,AnalyzeAction.INSTANCE,INDEX_NAME,
-        “title”,
-        “name”);
-requestBuilder.setAnalyzer(&quot;ik_smart&quot;);
-
-AnalyzeResponse response = requestBuilder.get();
-List&lt;AnalyzeResponse.AnalyzeToken&gt; tokens = response.getTokens();
-if(tokens ==null){
-    logger.warn(&quot;Can not analyze token for person: &quot;+indexTemplate.getId());
-    return false;
-}
-// 循环赋值
-List&lt;PersonSuggest&gt; suggests = new ArrayList&lt;&gt;();
-for (AnalyzeResponse.AnalyzeToken token : tokens) {
-    // 排除数字类型 &amp; 小于2个字符的分词结果
-    if(&quot;&lt;NUM&gt;&quot;.equals(token.getType())||token.getTerm().length()&lt;2){
-        continue;
-    }
-
-    PersonSuggest suggest = new PersonSuggest();
-    suggest.setInput(token.getTerm());
-    suggests.add(suggest);
-}
-// 定制化小区自动补全
-PersonSuggest suggest = new PersonSuggest();
-suggest.setInput(indexTemplate.getTitle());
-suggests.add(suggest);
-
-indexTemplate.setSuggest(suggests);
-</code></pre>
-<blockquote>
-<p>indexTemplate为索引模板<br>
-PersonSuggest 为自动补全模板<br>
-INDEX_NAME,这里是指在 ES 设置的索引名称。<br>
-从容器注入的 ElasticsearchTemplate Bean 中获取 Client ，再通过 AnalyzeRequestBuilder 分析请求类型中进行分词并获取分词结果 AnalyzeResponse.AnalyzeToken 列表。</p>
-</blockquote>
-<h4 id="completion-suggest实现搜索提示">completion suggest实现搜索提示</h4>
-<h5 id="官网的elasticsearch-请求dsl">官网的Elasticsearch 请求DSL：</h5>
-<p>www.elastic.co地址：  <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-suggesters.html#completion-suggester">completion-suggester</a><br>
-<img src="https://img-blog.csdnimg.cn/20191012155132278.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"></p>
-<h5 id="java代码实现">Java代码实现</h5>
-<pre><code class="language-java"> // 构建CompletionSuggestionBuilder 
- CompletionSuggestionBuilder suggestionBuilder = SuggestBuilders
- 		 .completionSuggestion(&quot;autocomplete&quot;) // 设置查询属性名称，可以自定义任意名，与下面的getSuggestion一致
- 		 .field(&quot;suggest&quot;)   // 自动补全的字段名
-         .text(prefix)		 // 自动补全内容
-         .size(5);			 // 获取条数限制
-         	
- SuggestBuilder suggestBuilder = new SuggestBuilder();
- suggestBuilder.addSuggestion(suggestionBuilder);
-// suggestBuilder.setText(&quot;autocomplete&quot;);
-
- // 设置SearchRequestBuilder 的suggestionBuilder
- SearchRequestBuilder requestBuilder = this.esClient.prepareSearch(INDEX_NAME)
-         .setTypes(INDEX_TYPE)
-         .addSuggestion(suggestionBuilder);
- logger.debug(requestBuilder.toString());
- SearchResponse response = requestBuilder.get();
- Suggest suggest = response.getSuggest();
- Suggest.Suggestion result = suggest.getSuggestion(&quot;autocomplete&quot;); // 获取返回结果
-
- int maxSuggest = 0;
- Set&lt;String&gt; suggestSet = new HashSet&lt;&gt;();
-
- // 循环所有的结果
- for (Object term : result.getEntries()) {
-     if(term instanceof CompletionSuggestion.Entry){
-         CompletionSuggestion.Entry item = (CompletionSuggestion.Entry) term;
-         if(item.getOptions().isEmpty()){
-             continue;
-         }
-         for (CompletionSuggestion.Entry.Option option : item.getOptions()) {
-             String tip = option.getText().string();
-             if(suggestSet.contains(tip)){
-                 continue;
-             }
-             suggestSet.add(tip);   // 保存返回的补全内容
-             maxSuggest++;
-         }
-     }
-     if(maxSuggest&gt;5){
-         break;
-     }
-
- }
- List&lt;String&gt; suggests = Lists.newArrayList(suggestSet.toArray(new String[]{}));
-~~~![](https://wqyuu.github.io/blog/post-images/1582013905606.jpg)</code></pre>
-]]></content>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[Springboot整合Elasticsearch（3）]]></title>
-        <id>https://wqyuu.github.io/blog/post/springboot-zheng-he-elasticsearch3</id>
-        <link href="https://wqyuu.github.io/blog/post/springboot-zheng-he-elasticsearch3">
-        </link>
-        <updated>2019-03-21T13:20:02.000Z</updated>
-        <content type="html"><![CDATA[<h3 id="search-api">Search API</h3>
-<h4 id="基本查询">基本查询</h4>
-<pre><code class="language-java">SearchRequestBuilder requestBuilder = this.esClient.prepareSearch(INDEX_NAME)
-				.setTypes(INDEX_TYPE)
-                .setQuery(QueryBuilders.termQuery(&quot;query&quot;, &quot;test&quot;));    // Query		   
-</code></pre>
-<h4 id="排序-多条件查询">排序、多条件查询</h4>
-<pre><code class="language-java">BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
-boolQuery.filter(QueryBuilders.termQuery(&quot;name&quot;,&quot;wqy&quot;));  
-boolQuery.filter(QueryBuilders.rangeQuery(&quot;area&quot;).lte(100).gte(20));  // Filter
-
-boolQuery.should(
-     QueryBuilders.matchQuery(&quot;title&quot;).boost(2.0f)
-);
-boolQuery.should(QueryBuilders.multiMatchQuery(rentSearch.getKeywords(),
-     &quot;age&quot;,&quot;high&quot;
-));
-
-SearchRequestBuilder requestBuilder = this.esClient.prepareSearch(INDEX_NAME)
-          .setTypes(INDEX_TYPE)
-          .setQuery(boolQuery)
-          .addSort(HouseSort.getSortKey(&quot;sequence1&quot;),
-                        SortOrder.valueOf(&quot;desc&quot;))
-          .setFrom(&quot;0&quot;)
-          .setSize(&quot;10&quot;)
-          .setFetchSource(&quot;id&quot;,null);
-</code></pre>
-<h4 id="返回结果判断">返回结果判断</h4>
-<pre><code class="language-java">SearchResponse response = requestBuilder.get();
-if(response.status()!=RestStatus.OK){
-    logger.warn(&quot;Search status is no ok for &quot;+requestBuilder);
-}
-</code></pre>
-]]></content>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[Springboot整合Elasticsearch（2）]]></title>
-        <id>https://wqyuu.github.io/blog/post/springboot-zheng-he-elasticsearch2</id>
-        <link href="https://wqyuu.github.io/blog/post/springboot-zheng-he-elasticsearch2">
-        </link>
-        <updated>2019-03-21T12:15:48.000Z</updated>
-        <content type="html"><![CDATA[<p>相关配置：<a href="https://blog.csdn.net/qq_37338761/article/details/102501961">Springboot整合Elasticsearch（1）</a></p>
-<h3 id="1操作索引">1.操作索引</h3>
-<h4 id="11-创建索引">1.1 创建索引</h4>
-<pre><code class="language-java">  IndexResponse response = this.esClient.prepareIndex(INDEX_NAME, INDEX_TYPE)
-                    .setSource(objectMapper.writeValueAsBytes(indexTemplate)).get();
-</code></pre>
-<h5 id="111-设置内容">1.1.1 设置内容</h5>
-<p>文档内容这里使用 Jackson进行序列化（<code>objectMapper.writeValueAsBytes(indexTemplate)</code>）<br>
-官方推荐的其他设置内容方式：</p>
-<ul>
-<li>自己使用字符串JSON</li>
-<li>使用Map</li>
-<li>Elasticsearch提供的内置XContentBuilder</li>
-</ul>
-<p>json示例：</p>
-<pre><code class="language-json">{
-    &quot;user&quot; : &quot;kimchy&quot;,
-    &quot;post_date&quot; : &quot;2009-11-15T14:12:12&quot;,
-    &quot;message&quot; : &quot;trying out Elasticsearch&quot;
-}
-</code></pre>
-<h5 id="112-indexresponse-对象">1.1.2 IndexResponse 对象</h5>
-<pre><code class="language-java">//索引名称
-String _index = response.getIndex(); 
-//类型名称
-String _type = response.getType(); 
-//文档ID（是否生成）
-String_id = response.getId(); 
-//版本（如果这是您第一次将此文档编入索引，则将获得：1）
-long _version = response.getVersion(); 
-//如果文档是新文档，则isCreated（）为true，如果文档已更新，则为false 
-boolean created = response.isCreated();
-</code></pre>
-<h4 id="12-更新索引">1.2 更新索引</h4>
-<pre><code class="language-java">UpdateResponse response = this.esClient.prepareUpdate(INDEX_NAME, INDEX_TYPE, esId).
-	setDoc(objectMapper.writeValueAsBytes(indexTemplate)).get();
-</code></pre>
-<h4 id="13-删除索引">1.3 删除索引</h4>
-<pre><code class="language-java">DeleteRequestBuilder deleteBuilder = this.esClient.prepareDelete(INDEX_NAME,INDEX_TYPE,esId);
-</code></pre>
-<h5 id="131-获取影响总数">1.3.1 获取影响总数</h5>
-<p>使用总数是否大于0判断是否成功</p>
-<pre><code class="language-java">DeleteResponse response = deleteBuilder.get();
-int total = response.getShardInfo().getTotal();
-</code></pre>
-]]></content>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[Springboot整合Elasticsearch（1）]]></title>
-        <id>https://wqyuu.github.io/blog/post/springboot-zheng-he-elasticsearch1</id>
-        <link href="https://wqyuu.github.io/blog/post/springboot-zheng-he-elasticsearch1">
-        </link>
-        <updated>2019-03-20T11:11:35.000Z</updated>
-        <content type="html"><![CDATA[<p><strong>准备写写关于springboot整合Elasticsearch的内容，主要就是使用TransportClient去操作Elasticsearch，一篇文章太长了，于是分开几篇来写这部分内容。下面是第一篇内容，其他内容见后面博文。。。</strong></p>
-<hr>
-<p><em><strong>Java客户端使用TransportClient连接Elasticsearch，依赖与配置如下：</strong></em></p>
-<p><em>环境信息：<br>
-Java: 			1.8<br>
-Elasticsearch: 	2.4.6<br>
-springboot:		1.5.7</em></p>
-<h3 id="springboot版本与es依赖">springboot版本与es依赖</h3>
-<pre><code class="language-xml">    &lt;parent&gt;
-        &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
-        &lt;artifactId&gt;spring-boot-starter-parent&lt;/artifactId&gt;
-        &lt;version&gt;1.5.7.RELEASE&lt;/version&gt;
-        &lt;relativePath/&gt; &lt;!-- lookup parent from repository --&gt;
-    &lt;/parent&gt;
-
-	&lt;dependencies&gt;
-        &lt;dependency&gt;
-            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
-            &lt;artifactId&gt;spring-boot-starter-web&lt;/artifactId&gt;
-        &lt;/dependency&gt;
-        &lt;dependency&gt;
-            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
-            &lt;artifactId&gt;spring-boot-starter-test&lt;/artifactId&gt;
-            &lt;scope&gt;test&lt;/scope&gt;
-        &lt;/dependency&gt;
-        &lt;dependency&gt;
-            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
-            &lt;artifactId&gt;spring-boot-starter-data-elasticsearch&lt;/artifactId&gt;
-        &lt;/dependency&gt;
-  &lt;/dependencies&gt;
-</code></pre>
-<h3 id="applicationproperties">application.properties</h3>
-<pre><code class="language-yml">#elasticsearch
-elasticsearch.cluster.name=elasticsearch
-elasticsearch.host=127.0.0.1
-elasticsearch.port=9300
-</code></pre>
-<h3 id="es配置">ES配置</h3>
-<pre><code class="language-java">import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-
-@Configuration
-public class ElasticsearchConfig {
-
-    @Value(&quot;${elasticsearch.host}&quot;)
-    private String esHost;
-
-    @Value(&quot;${elasticsearch.port}&quot;)
-    private int esPort;
-
-    @Value(&quot;${elasticsearch.cluster.name}&quot;)
-    private String esName;
-
-    @Bean
-    public TransportClient esClient() throws UnknownHostException {
-        Settings settings = Settings.builder()
-                .put(&quot;cluster.name&quot;, this.esName)
-                .build();
-
-        InetSocketTransportAddress master = new InetSocketTransportAddress(
-                InetAddress.getByName(esHost), esPort);
-        TransportClient client = TransportClient.builder().settings(settings).build().addTransportAddress(master);
-
-        return client;
-    }
-}
-~~~![](https://wqyuu.github.io/blog/post-images/1582013567771.jpg)</code></pre>
-]]></content>
-    </entry>
-    <entry>
-        <title type="html"><![CDATA[SpringBoot文件配置类]]></title>
-        <id>https://wqyuu.github.io/blog/post/springboot-wen-jian-pei-zhi-lei</id>
-        <link href="https://wqyuu.github.io/blog/post/springboot-wen-jian-pei-zhi-lei">
-        </link>
-        <updated>2019-03-19T04:43:31.000Z</updated>
-        <summary type="html"><![CDATA[<p>😁<em>手写一个文件配置类，来规定文件上传的属性。</em></p>
-]]></summary>
-        <content type="html"><![CDATA[<p>😁<em>手写一个文件配置类，来规定文件上传的属性。</em></p>
-<!-- more -->
-<blockquote>
-<p>springBoot的文件上传有默认的配置类：MultipartAutoConfiguration，配置文件在Spring-boot-autoconfig下org.springframework.boot.autoconfigure.web包内。</p>
-</blockquote>
-<p>在写配置前，需要了解springBoot的一些基本注解：</p>
-<ul>
-<li><strong>@Configuration</strong>  指示一个类声明一个或多个@Bean方法，并且可以由Spring容器处理，以便在运行时为这些bean生成BeanDefinition和服务请求</li>
-<li><strong>@ConditionalOnClass</strong>   是在特定的类加载后才可使用</li>
-<li><strong>@ConditionalOnProperty</strong>  控制Configuration是否生效</li>
-<li><strong>@EnableConfigurationProperties</strong>  开启使用自动配置的文件</li>
-<li><strong>@ConditionalOnMissingBean</strong>  该注解表示，如果存在它修饰的类的bean，则不需要再创建这个bean</li>
-</ul>
-<p><em>相关注解的详解可看以下文章：</em><br>
-<a href="https://www.jianshu.com/p/721c76c1529c">Spring @Configuration 注解介绍</a><br>
-<a href="https://blog.csdn.net/andy_zhang2007/article/details/81284875">Spring Boot基于特定条件创建Bean例子 : ConditionalOnClass</a><br>
-<a href="https://www.cnblogs.com/yixianyixian/p/7346894.html">springBoot----@ConditionalOnxxx相关注解总结</a><br>
-<a href="https://studygolang.com/articles/20004">springboot(四)——@EnableConfigurationProperties是如何起作用的你知道吗</a><br>
-<a href="https://www.jianshu.com/p/68a75c093023">@ConditionalOnProperty来控制Configuration是否生效</a></p>
-<h3 id="文件上传配置类">文件上传配置类</h3>
-<pre><code class="language-java">import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.web.MultipartProperties;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.web.multipart.MultipartResolver;
-import org.springframework.web.multipart.support.StandardServletMultipartResolver;
-import org.springframework.web.servlet.DispatcherServlet;
-
-import javax.servlet.MultipartConfigElement;
-import javax.servlet.Servlet;
-
+import org.apache.curator.RetryPolicy;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.framework.recipes.locks.InterProcessMutex;
+import org.apache.curator.retry.ExponentialBackoffRetry;
 /**
- * 文件上传配置类
+ * 基于curator的zookeeper分布式锁
+ * 这里我们开启5个线程，每个线程获取锁的最大等待时间为5秒，为了模拟具体业务场景，方法中设置4秒等待时间。
+ * 
  */
-@Configuration
-@ConditionalOnClass({Servlet.class,StandardServletMultipartResolver.class,
-        MultipartConfigElement.class})
-@ConditionalOnProperty(prefix = &quot;spring.http.multipart&quot;,name=&quot;enabled&quot;,
-matchIfMissing = true)
-@EnableConfigurationProperties(MultipartProperties.class)
-public class WebFileUploadConfig {
-
-    private final MultipartProperties multipartProperties;
-
-    public WebFileUploadConfig(MultipartProperties multipartProperties){
-        this.multipartProperties=multipartProperties;
-    }
-    /**
-     * 上传配置
-     * @return
-     */
-    @Bean
-    @ConditionalOnMissingBean
-    public MultipartConfigElement multipartConfigElement(){
-        return this.multipartProperties.createMultipartConfig();
-    }
-
-    /**
-     * 注册解析器
-     * @return
-     */
-    @Bean(name = DispatcherServlet.MULTIPART_RESOLVER_BEAN_NAME)
-    @ConditionalOnMissingBean(MultipartResolver.class)
-    public StandardServletMultipartResolver multipartResolver(){
-        StandardServletMultipartResolver multipartResolver =
-                new StandardServletMultipartResolver();
-        multipartResolver.setResolveLazily(this.multipartProperties.isResolveLazily());
-        return multipartResolver;
-    }
+public class CuratorUtil {
+    private static String address = &quot;192.168.12.101:2181&quot;;
+	
+    public static void main(String[] args) {
+		//1、重试策略：初试时间为1s 重试3次
+		RetryPolicy retryPolicy = new ExponentialBackoffRetry(1000, 3); 
+		//2、通过工厂创建连接
+		CuratorFramework client = CuratorFrameworkFactory.newClient(address, retryPolicy);
+        //3、开启连接
+        client.start();
+        //4 分布式锁
+        final InterProcessMutex mutex = new InterProcessMutex(client, &quot;/curator/lock&quot;); 
+        //读写锁
+        //InterProcessReadWriteLock readWriteLock = new InterProcessReadWriteLock(client, &quot;/readwriter&quot;);
+        
+        ExecutorService fixedThreadPool = Executors.newFixedThreadPool(5);
+        
+        for (int i = 0; i &lt; 5; i++) {
+            fixedThreadPool.submit(new Runnable() {
+                @Override
+                public void run() {
+                	boolean flag = false;
+                	try {
+                		//尝试获取锁，最多等待5秒
+                		flag = mutex.acquire(5, TimeUnit.SECONDS);
+                		Thread currentThread = Thread.currentThread();
+                		if(flag){
+                			System.out.println(&quot;线程&quot;+currentThread.getId()+&quot;获取锁成功&quot;);
+                		}else{
+                			System.out.println(&quot;线程&quot;+currentThread.getId()+&quot;获取锁失败&quot;);
+                		}
+                		//模拟业务逻辑，延时4秒
+                		Thread.sleep(4000);
+					} catch (Exception e) {
+						e.printStackTrace();
+					} finally{
+						if(flag){
+							try {
+								mutex.release();
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
+						}
+					}
+                }
+            });
+        }
+	}
 }
 </code></pre>
-<h3 id="配置文件">配置文件</h3>
-<pre><code class="language-properties">spring.http.multipart.enabled=true
-spring.http.multipart.location=/SpingBoot/uploadFile_dir/
-spring.http.multipart.file-size-threshold=5MB
-spring.http.multipart.max-request-size=20MB
-</code></pre>
-<h4 id="解析">解析：</h4>
-<p><code>@ConditionalOnClass</code> 对生效情况作了限制，需要web常用类加载到beanfactory才可生效<br>
-<code>@ConditionalOnProperty</code> 指定了配置文件中的文件上传属性，前缀为 <code>spring.http.multipart</code><br>
-<code>@EnableConfigurationProperties(MultipartProperties.class)</code> 开启配置<code>MultipartProperties</code>类，有上面的<code>@ConditionalOnProperty</code> ，<code>MultipartProperties</code>中的属性已经是写到配置文件中自定义属性。</p>
-<p><code>multipartProperties.createMultipartConfig()</code>  创建文件上传配置，将自定义属性加载到spring中</p>
-<p><code>multipartResolver()</code> 方法用于注册解析器</p>
-<blockquote>
-<p>MultipartResolver 位于 HandlerMapping 之前，请求一来就交由它来处理。当 Web 请求到达 DispatcherServlet 并等待处理的时候，DispatcherServlet 首先会检查能否从自的 WebApplicationContext 中找到一个名称为 multipartResolver(由 DispatcherServlet 的常量 MULTIPART_RESOLVER_BEAN_NAME 所决定)的 MultipartResolver 实例。如果能够获得一个 MultipartResolver 的实例，DispatcherServlet 将调用 MultipartResolver 的 isMultipart(request) 方法检查当前 Web 请求是否为 multipart类型。如果是，DispatcherServlet 将调用 MultipartResolver 的 resolveMultipart(request) 方法，对原始 request 进行装饰，并返回一个 MultipartHttpServletRequest 供后继处理流程使用(最初的 HttpServletRequest 被偷梁换柱成了 MultipartHttpServletRequest)，否则，直接返回最初的 HttpServletRequest。</p>
-</blockquote>
-<p>参照文章：<br>
-<a href="https://www.cnblogs.com/lmk-sym/p/6529232.html">SpringBoot上传相关配置</a><br>
-<a href="https://blog.csdn.net/qq_37432174/article/details/98991541">SpringBoot文件上传 MultipartAutoConfiguration源码简单解析<br>
-</a></p>
+<p>这里我们开启5个线程，每个线程获取锁的最大等待时间为5秒，为了模拟具体业务场景，方法中设置4秒等待时间。开始执行main方法，通过ZooInspector监控/curator/lock下的节点如下图：</p>
+<figure data-type="image" tabindex="1"><img src="https://img-blog.csdnimg.cn/20190826210337845.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="ZooInspector监控" loading="lazy"></figure>
+<p>对，没错，设置4秒的业务处理时长就是为了观察生成了几个顺序节点。果然如案例中所述，每个线程都会生成一个节点并且还是有序的。观察控制台，我们会发现只有两个线程获取锁成功，另外三个线程超时获取锁失败会自动删除节点。线程执行完毕我们刷新一下/curator/lock节点，发现刚才创建的五个子节点已经不存在了。</p>
+<p>InterProcessMutex源码分析:<br>
+<a href="https://www.cnblogs.com/shileibrave/p/9854921.html">https://www.cnblogs.com/shileibrave/p/9854921.html</a></p>
 ]]></content>
     </entry>
     <entry>
-        <title type="html"><![CDATA[ SpringBoot与Mysql整合]]></title>
-        <id>https://wqyuu.github.io/blog/post/springboot-yu-mysql-zheng-he</id>
-        <link href="https://wqyuu.github.io/blog/post/springboot-yu-mysql-zheng-he">
+        <title type="html"><![CDATA[Zookeeper的Java客户端Curator(6)]]></title>
+        <id>https://wqyuu.github.io/blog/post/zookeeper-de-java-ke-hu-duan-curator6</id>
+        <link href="https://wqyuu.github.io/blog/post/zookeeper-de-java-ke-hu-duan-curator6">
         </link>
-        <updated>2019-03-18T00:22:23.000Z</updated>
-        <summary type="html"><![CDATA[<p>😁<br>
-简介：使用JPA整合Mysql</p>
-]]></summary>
-        <content type="html"><![CDATA[<p>😁<br>
-简介：使用JPA整合Mysql</p>
-<!-- more -->
-<p>开始准备：</p>
+        <updated>2019-04-30T11:39:50.000Z</updated>
+        <content type="html"><![CDATA[<h3 id="实践6-认证授权">实践6 认证授权</h3>
+<h5 id="1递归权限">1.递归权限</h5>
 <ul>
-<li>Mysql数据库</li>
-<li>搭建好的springboot的demo</li>
-<li>IDEA</li>
+<li>creatingParentsIfNeeded()：父节点不存在。递归创建节</li>
+<li>CreateMode.PERSISTENT：递归创建</li>
+<li>withACL()设置节点权限</li>
+<li>withACL(acls, true) 递归设置节点权限</li>
 </ul>
-<p>搭建springboot的demo及开发环境可以查看上一篇<br>
-<a href="https://blog.csdn.net/qq_37338761/article/details/100113153">SpringBoot知识体系（一）——简单图解从零搭建SpringBoot</a></p>
-<p><ul class="markdownIt-TOC">
-<li>
-<ul>
-<li>
-<ul>
-<li><a href="#%E4%B8%80%E6%B7%BB%E5%8A%A0%E8%AE%BF%E9%97%AE%E6%95%B0%E6%8D%AE%E5%BA%93%E7%9B%B8%E5%85%B3%E4%BE%9D%E8%B5%96">一.添加访问数据库相关依赖!</a></li>
-<li><a href="#%E4%BA%8C%E6%95%B0%E6%8D%AE%E5%BA%93%E5%88%9B%E5%BB%BA%E7%94%A8%E6%88%B7%E8%A1%A8">二.数据库创建用户表</a></li>
-<li><a href="#%E4%B8%89%E5%A2%9E%E5%8A%A0mysql%E8%BF%9E%E6%8E%A5%E4%BF%A1%E6%81%AF">三.增加Mysql连接信息</a></li>
-<li><a href="#%E5%9B%9B%E5%A2%9E%E5%8A%A0jpa%E9%85%8D%E7%BD%AE">四.增加JPA配置</a></li>
-<li><a href="#%E4%BA%94%E5%88%9B%E5%BB%BA%E5%AE%9E%E4%BD%93%E7%B1%BB">五.创建实体类</a></li>
-<li><a href="#%E5%85%AD%E5%88%9B%E5%BB%BAdao%E5%B1%82%E6%8E%A5%E5%8F%A3userrepository">六.创建DAO层接口UserRepository</a></li>
-<li><a href="#%E4%B8%83%E5%88%9B%E5%BB%BA%E6%B5%8B%E8%AF%95%E7%B1%BB">七.创建测试类</a>
-<ul>
-<li><a href="#1%E4%BF%AE%E6%94%B9applicationtest">(1)修改ApplicationTest:</a></li>
-<li><a href="#2%E5%9C%A8repository%E5%8C%85%E4%B8%8B%E5%88%9B%E5%BB%BAuserrepositorytest">(2)在repository包下创建UserRepositoryTest</a></li>
-<li><a href="#3%E8%BF%90%E8%A1%8C%E6%B5%8B%E8%AF%95">(3)运行测试</a></li>
-</ul>
-</li>
-<li><a href="#%E5%85%AB%E5%8F%AF%E8%83%BD%E5%87%BA%E7%8E%B0%E7%9A%84%E6%8A%A5%E9%94%99">八.可能出现的报错</a>
-<ul>
-<li><a href="#1%E8%BF%90%E8%A1%8C%E6%97%B6%E5%87%BA%E7%8E%B0hibernatedialect-not-set">(1）运行时出现'hibernate.dialect' not set</a></li>
-<li><a href="#2%E8%BF%90%E8%A1%8C%E6%97%B6%E5%87%BA%E7%8E%B0no-spring-session-store-is-configured">(2）运行时出现No Spring Session store is configured</a></li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-</p>
-<h3 id="一添加访问数据库相关依赖">一.添加访问数据库相关依赖<img src="https://wqyuu.github.io/blog/post-images/1582010758165.jpg" alt="" loading="lazy"></h3>
-<pre><code class="language-xml">       &lt;dependency&gt;
-            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
-            &lt;artifactId&gt;spring-boot-starter-data-jpa&lt;/artifactId&gt;
-        &lt;/dependency&gt;
-        &lt;dependency&gt;
-            &lt;groupId&gt;com.h2database&lt;/groupId&gt;
-            &lt;artifactId&gt;h2&lt;/artifactId&gt;
-            &lt;scope&gt;test&lt;/scope&gt;
-        &lt;/dependency&gt;
-        &lt;dependency&gt;
-            &lt;groupId&gt;mysql&lt;/groupId&gt;
-            &lt;artifactId&gt;mysql-connector-java&lt;/artifactId&gt;
-            &lt;scope&gt;runtime&lt;/scope&gt;
-        &lt;/dependency&gt;
+<pre><code class="language-java">		// 实例化
+		CuratorAcl cto = new CuratorAcl();
+		boolean isZkCuratorStarted = cto.client.isStarted();
+		System.out.println(&quot;当前客户的状态：&quot; + (isZkCuratorStarted ? &quot;连接中&quot; : &quot;已关闭&quot;));
+		
+		String nodePath = &quot;/acl/father/child/sub&quot;;
+		
+		List&lt;ACL&gt; acls = new ArrayList&lt;ACL&gt;();
+		Id imooc1 = new Id(&quot;digest&quot;, AclUtils.getDigestUserPwd(&quot;imooc1:123456&quot;));
+		Id imooc2 = new Id(&quot;digest&quot;, AclUtils.getDigestUserPwd(&quot;imooc2:123456&quot;));
+		acls.add(new ACL(Perms.ALL, imooc1));
+		acls.add(new ACL(Perms.READ, imooc2));
+		acls.add(new ACL(Perms.DELETE | Perms.CREATE, imooc2));
+		
+		// 创建节点
+		byte[] data = &quot;spiderman&quot;.getBytes();
+		cto.client.create().creatingParentsIfNeeded()
+				.withMode(CreateMode.PERSISTENT)
+				.withACL(acls, true)
+				.forPath(nodePath, data);
 </code></pre>
-<h3 id="二数据库创建用户表">二.数据库创建用户表</h3>
-<pre><code class="language-sql">DROP TABLE IF EXISTS `user`;
-CREATE TABLE `user` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '用户唯一id',
-  `name` varchar(32) DEFAULT NULL COMMENT '用户名',
-  `email` varchar(32) DEFAULT NULL COMMENT '电子邮箱',
-  `phone_number` varchar(15) NOT NULL COMMENT '电话号码',
-  `password` varchar(32) DEFAULT NULL COMMENT '密码',
-  `status` int(2) unsigned NOT NULL DEFAULT '0' COMMENT '用户状态 0-正常 1-封禁',
-  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '用户账号创建时间',
-  `last_login_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '上次登录时间',
-  `last_update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '上次更新记录时间',
-  `avatar` varchar(255) DEFAULT NULL COMMENT '头像',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `index_on_phone` (`phone_number`) USING BTREE COMMENT '用户手机号',
-  UNIQUE KEY `index_on_username` (`name`) USING BTREE COMMENT '用户名索引',
-  UNIQUE KEY `index_on_email` (`email`) USING BTREE COMMENT '电子邮箱索引'
-) ENGINE=InnoDB AUTO_INCREMENT=9 
-DEFAULT CHARSET=utf8mb4 COMMENT='用户基本信息表';
-
+<h5 id="2设置单节点权限">2.设置单节点权限</h5>
+<p>如果想修改已有节点的权限，可以使用下面方法：</p>
+<pre><code class="language-java">cto.client.setACL().withACL(acls).forPath(&quot;/curatorNode&quot;);
 </code></pre>
-<h3 id="三增加mysql连接信息">三.增加Mysql连接信息</h3>
-<pre><code class="language-java">#Mysql
-spring.datasource.driver-class-name=com.mysql.jdbc.Driver
-spring.datasource.url=jdbc:mysql://127.0.0.1:3306/wqy01?useUnicode=true&amp;characterEncoding=UTF-8
-spring.datasource.username=root
-spring.datasource.password=123
-
-#jpa
-spring.jpa.show-sql=true
-spring.jpa.hibernate.ddl-auto=validate
-spring.jpa.database-platform=org.hibernate.dialect.MySQLDialect
+<h5 id="3创建时授权">3.创建时授权</h5>
+<p>创建时授权才可以递归对节点创建授权<br>
+父节点授权时，用户默认权限没办法访问这个节点，所以需要授权</p>
+<pre><code class="language-java">RetryPolicy retryPolicy = new RetryNTimes(3, 5000);
+		client = CuratorFrameworkFactory.builder().authorization(&quot;digest&quot;, &quot;imooc:123456&quot;.getBytes())
+				.connectString(zkServerPath)
+				.sessionTimeoutMs(10000).retryPolicy(retryPolicy)
+				.namespace(&quot;workspace&quot;).build();
+		client.start();
 </code></pre>
-<h3 id="四增加jpa配置">四.增加JPA配置</h3>
-<p>在根目录下创建config包，创建JPAConfig 类</p>
-<pre><code class="language-java">import org.springframework.boot.autoconfigure.jdbc.DataSourceBuilder;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
-import org.springframework.orm.jpa.JpaTransactionManager;
-import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
-import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.annotation.EnableTransactionManagement;
+<h5 id="4测试权限">4.测试权限</h5>
+<pre><code class="language-java">		// 更新节点数据
+		byte[] newData = &quot;batman&quot;.getBytes();
+		cto.client.setData().withVersion(0).forPath(nodePath, newData);
+</code></pre>
+<p>初始化使用用户imooc授权，对节点修改数据会报错:no Auth<br>
+切换为imooc用户可以正常进行修改</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Zookeeper的Java客户端Curator(5)]]></title>
+        <id>https://wqyuu.github.io/blog/post/zookeeper-de-java-ke-hu-duan-curator5</id>
+        <link href="https://wqyuu.github.io/blog/post/zookeeper-de-java-ke-hu-duan-curator5">
+        </link>
+        <updated>2019-04-28T01:37:27.000Z</updated>
+        <content type="html"><![CDATA[<h3 id="实践5-监听子节点">实践5  监听子节点</h3>
+<p>StartMode一般选POST_INITIALIZED_EVENT，这个会有提醒初始化成功<br>
+如果想细致到对某个节点的监听，可以获取节点的路径： String path = event.getData().getPath(); 判断这个路径来确定节点创建成功失败</p>
+<pre><code class="language-java">final static String ADD_PATH = &quot;/super/imooc/d&quot;;
 
-import javax.persistence.EntityManagerFactory;
-import javax.sql.DataSource;
 
-@Configuration
-@EnableJpaRepositories(basePackages = &quot;com.wqy.springbootes.repository&quot;)
-@EnableTransactionManagement
-public class JPAConfig {
-
-    @Bean
-    @ConfigurationProperties(prefix = &quot;spring.datasource&quot;)
-    public DataSource dataSource(){
-        return DataSourceBuilder.create().build();
-    }
-
-    @Bean
-    public LocalContainerEntityManagerFactoryBean entityManagerFactory(){
-        HibernateJpaVendorAdapter jpaVendorAdapter = new HibernateJpaVendorAdapter();
-        jpaVendorAdapter.setGenerateDdl(false);
-        LocalContainerEntityManagerFactoryBean entityManagerFactoryBean =
-                new LocalContainerEntityManagerFactoryBean();
-        entityManagerFactoryBean.setDataSource(dataSource());
-        entityManagerFactoryBean.setJpaVendorAdapter(jpaVendorAdapter);
-        entityManagerFactoryBean.setPackagesToScan(&quot;com.wqy.springbootes.entity&quot;);
-
-        return entityManagerFactoryBean;
-    }
-
-    @Bean
-    public PlatformTransactionManager transactionManager(EntityManagerFactory entityManagerFactory){
-
-        JpaTransactionManager transactionManager = new JpaTransactionManager();
-        transactionManager.setEntityManagerFactory(entityManagerFactory);
-        return transactionManager;
-    }
-
+// 为子节点添加watcher
+// PathChildrenCache: 监听数据节点的增删改，会触发事件
+String childNodePathCache =  nodePath;// cacheData: 设置缓存节点的数据状态
+final PathChildrenCache childrenCache = new PathChildrenCache(cto.client, childNodePathCache, true);
+/**
+ * StartMode: 初始化方式
+ * POST_INITIALIZED_EVENT：异步初始化，初始化之后会触发事件
+ * NORMAL：异步初始化
+ * BUILD_INITIAL_CACHE：同步初始化
+ */
+childrenCache.start(StartMode.POST_INITIALIZED_EVENT);
+		
+List&lt;ChildData&gt; childDataList = childrenCache.getCurrentData();
+System.out.println(&quot;当前数据节点的子节点数据列表：&quot;);
+for (ChildData cd : childDataList) {
+	String childData = new String(cd.getData());
+	System.out.println(childData);
 }
+childrenCache.getListenable().addListener(new PathChildrenCacheListener() {
+        public void childEvent(CuratorFramework client,PathChildrenCacheEvent event) throws Exception {
+                if(event.getType().equals(PathChildrenCacheEvent.Type.INITIALIZED)){
+                  System.out.println(&quot;子节点初始化ok...&quot;);
+                }else if(event.getType().equals(PathChildrenCacheEvent.Type.CHILD_ADDED)){
+                  String path = event.getData().getPath();
+                  if (path.equals(ADD_PATH)) {
+                        System.out.println(&quot;添加子节点:&quot; + event.getData().getPath());
+                        System.out.println(&quot;子节点数据:&quot; + new String(event.getData().getData()));
+                    } else if (path.equals(&quot;/super/imooc/e&quot;)) {
+                        System.out.println(&quot;添加不正确...&quot;);
+                    }
+
+                }else if(event.getType().equals(PathChildrenCacheEvent.Type.CHILD_REMOVED)){
+                    System.out.println(&quot;删除子节点:&quot; + event.getData().getPath());
+                }else if(event.getType().equals(PathChildrenCacheEvent.Type.CHILD_UPDATED)){
+                    System.out.println(&quot;修改子节点路径:&quot; + event.getData().getPath());
+                    System.out.println(&quot;修改子节点数据:&quot; + new String(event.getData().getData()));
+                }
+            }
+});
+
+
+
 </code></pre>
-<h3 id="五创建实体类">五.创建实体类</h3>
-<p>在根目录下创建entity包，创建User类,省略set/get</p>
-<pre><code class="language-java">import javax.persistence.*;
-import java.util.Date;
-
-@Entity
-@Table(name = &quot;user&quot;)
-public class User {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    private String name;
-
-    private String password;
-
-    private String email;
-
-    @Column(name = &quot;phone_number&quot;)
-    private String phoneNumber;
-
-    private int status;
-
-    @Column(name = &quot;create_time&quot;)
-    private Date createTime;
-
-    @Column(name = &quot;last_login_time&quot;)
-    private Date lastLoginTime;
-
-    @Column(name = &quot;last_update_time&quot;)
-    private Date lastUpdateTime;
-
-    private String avatar;
-}    
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Zookeeper的Java客户端Curator(4)]]></title>
+        <id>https://wqyuu.github.io/blog/post/zookeeper-de-java-ke-hu-duan-curator4</id>
+        <link href="https://wqyuu.github.io/blog/post/zookeeper-de-java-ke-hu-duan-curator4">
+        </link>
+        <updated>2019-04-26T13:40:08.000Z</updated>
+        <content type="html"><![CDATA[<h3 id="实践4">实践4</h3>
+<h4 id="1watcher-事件">1.watcher 事件</h4>
+<p>当使用usingWatcher的时候，监听只会触发一次，监听完毕后就销毁</p>
+<pre><code class="language-java">// watcher 事件  当使用usingWatcher的时候，监听只会触发一次，监听完毕后就销毁
+cto.client.getData().usingWatcher(new MyCuratorWatcher()).forPath(nodePath);
+//cto.client.getData().usingWatcher(new MyWatcher()).forPath(nodePath);
 </code></pre>
-<h3 id="六创建dao层接口userrepository">六.创建DAO层接口UserRepository</h3>
-<p>在根目录下创建repository包，创建UserRepository类，集成CrudRepository</p>
-<pre><code class="language-java">import com.wqy.springbootes.entity.User;
-import org.springframework.data.repository.CrudRepository;
-
-public interface UserRepository extends CrudRepository&lt;User,Long&gt; {
+<h4 id="2监听缓存">2.监听缓存</h4>
+<blockquote>
+<ul>
+<li>NodeCache: 监听数据节点的变更，会触发事件。一直运行监听，增删改操作都会输出节点信息 nodePath为监听路径。</li>
+<li>nodeCache.start(true);为开启监听 初始化使用true，可以在获取客户端进行连接时节点的数据。</li>
+<li>nodeCache.getListenable()<br>
+获取所有监听列表。nodeCache.getListenable()也有remove事件，用来移除监听。</li>
+<li>只要有事件发生就会触发NodeCacheListener的nodeChanged()方法</li>
+</ul>
+</blockquote>
+<pre><code class="language-java">// 为节点添加watcher
+// NodeCache: 监听数据节点的变更，会触发事件
+final NodeCache nodeCache = new NodeCache(cto.client, nodePath);
+// buildInitial : 初始化的时候获取node的值并且缓存
+nodeCache.start(true);
+if (nodeCache.getCurrentData() != null) {
+	System.out.println(&quot;节点初始化数据为：&quot; + new String(nodeCache.getCurrentData().getData()));
+} else {
+	System.out.println(&quot;节点初始化数据为空...&quot;);
 }
+nodeCache.getListenable().addListener(new NodeCacheListener() {
+	public void nodeChanged() throws Exception {
+		if (nodeCache.getCurrentData() == null) {
+			System.out.println(&quot;空&quot;);
+			return;
+		}
+		String data = new String(nodeCache.getCurrentData().getData());
+		System.out.println(&quot;节点路径：&quot; + nodeCache.getCurrentData().getPath() + &quot;数据：&quot; + data);
+	}
+});
 </code></pre>
-<h3 id="七创建测试类">七.创建测试类</h3>
-<p>在测试类根目录下创建repository包</p>
-<h4 id="1修改applicationtest">(1)修改ApplicationTest:</h4>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Zookeeper的Java客户端Curator(3)]]></title>
+        <id>https://wqyuu.github.io/blog/post/zookeeper-de-java-ke-hu-duan-curator3</id>
+        <link href="https://wqyuu.github.io/blog/post/zookeeper-de-java-ke-hu-duan-curator3">
+        </link>
+        <updated>2019-04-22T12:33:24.000Z</updated>
+        <content type="html"><![CDATA[<h3 id="实践3">实践3</h3>
+<h4 id="1读取节点数据">1.读取节点数据</h4>
+<p>storingStatIn拿到Stat信息，并进行存储</p>
+<pre><code class="language-java">// 读取节点数据
+Stat stat = new Stat();
+byte[] data = cto.client.getData().storingStatIn(stat).forPath(nodePath);
+System.out.println(&quot;节点&quot; + nodePath + &quot;的数据为: &quot; + new String(data));
+System.out.println(&quot;该节点的版本号为: &quot; + stat.getVersion());
+</code></pre>
+<h4 id="2查询子节点">2.查询子节点</h4>
 <pre><code class="language-java">
-import org.junit.runner.RunWith;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
-
-@RunWith(SpringRunner.class)
-@SpringBootTest
-@Configuration
-public class SpringbootEsApplicationTests {
+// 查询子节点
+List&lt;String&gt; childNodes = cto.client.getChildren()
+									.forPath(nodePath);
+System.out.println(&quot;开始打印子节点：&quot;);
+for (String s : childNodes) {
+	System.out.println(s);
 }
 </code></pre>
-<h4 id="2在repository包下创建userrepositorytest">(2)在repository包下创建UserRepositoryTest</h4>
-<pre><code class="language-java">public class UserRepositoryTest extends SpringbootEsApplicationTests {
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Test
-    public void test(){
-        User user = userRepository.findOne(1001L);
-        Assert.assertEquals(&quot;25490@163.com&quot;,user.getEmail());
-    }
-}
+<h4 id="3判断节点是否存在">3.判断节点是否存在</h4>
+<pre><code class="language-java">// 判断节点是否存在,如果不存在则为空
+Stat statExist = cto.client.checkExists().forPath(nodePath + &quot;/it7&quot;);
+System.out.println(statExist);
 </code></pre>
-<h4 id="3运行测试">(3)运行测试</h4>
-<p><em>console运行无报错，OK！</em></p>
-<h3 id="八可能出现的报错">八.可能出现的报错</h3>
-<h4 id="1运行时出现hibernatedialect-not-set">(1）运行时出现'hibernate.dialect' not set</h4>
-<p>可以点击查看<a href="https://blog.csdn.net/qq_37338761/article/details/100113845">springboot的数据库设置报错解决</a></p>
-<h4 id="2运行时出现no-spring-session-store-is-configured">(2）运行时出现No Spring Session store is configured</h4>
-<p>可以点击查看<a href="https://blog.csdn.net/qq_37338761/article/details/100126831">No Spring Session store is configured报错解决</a></p>
 ]]></content>
     </entry>
 </feed>

@@ -1,0 +1,266 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>Docker下安装ElasticSearch | Wqyuu</title>
+<meta name="description" content="秉忠贞之志,守谦退之节">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://wqyuu.github.io/blog/favicon.ico?v=1582020047129">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://wqyuu.github.io/blog/styles/main.css">
+
+
+  
+    <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css" />
+  
+
+  
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://wqyuu.github.io/blog">
+        <img class="avatar" src="https://wqyuu.github.io/blog/images/avatar.png?v=1582020047129" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://wqyuu.github.io/blog">
+        <h1 class="site-title">Wqyuu</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="https://wqyuu.github.io/blog" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+            <div class="feature-container" style="background-image: url('https://wqyuu.github.io/blog/post-images/docker-xia-an-zhuang-elasticsearch.jpg')">
+            </div>
+          
+          <h2 class="post-title">Docker下安装ElasticSearch</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2019-05-03</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://wqyuu.github.io/blog/tag/elasticsearch">
+                    elasticsearch
+                    
+                      ，
+                    
+                  </a>
+                
+                  <a href="https://wqyuu.github.io/blog/tag/docker">
+                    docker
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <ul>
+<li>
+<p><a href="https://blog.csdn.net/ityouknow/article/details/90899131">Docker 入门及安装[Docker 系列-1]</a></p>
+</li>
+<li>
+<p><a href="https://blog.csdn.net/qq_37338761/article/details/90697027">Docker安装及问题解决(ubuntu16.04)</a></p>
+</li>
+<li>
+<p>全文搜索属于最常见的需求，开源的 Elasticsearch （以下简称 Elastic）是目前全文搜索引擎的首选。</p>
+</li>
+<li>
+<p>它可以快速地储存、搜索和分析海量数据。维基百科、Stack Overflow、Github 都采用它。</p>
+</li>
+<li>
+<p>Elastic 的底层是开源库 Lucene。但是，你没法直接用 Lucene，必须自己写代码去调用它的接口。Elastic 是 Lucene 的封装，提供了 REST API 的操作接口，开箱即用。</p>
+</li>
+</ul>
+<h3 id="安装elasticsearch">安装ElasticSearch</h3>
+<h4 id="1-从docker仓库搜索elasticsearch">1. 从docker仓库搜索ElasticSearch</h4>
+<pre><code class="language-shell">$ docker search elasticsearch
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://img-blog.csdnimg.cn/2019060511251850.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"></figure>
+<h4 id="2选择一个版本拉取镜像-我安装的是246">2.选择一个版本，拉取镜像。我安装的是2.4.6</h4>
+<p>2.4.6是目前springboot支持的最高版本<br>
+<img src="https://img-blog.csdnimg.cn/20190605112719550.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"><br>
+参考：https://github.com/spring-projects/spring-data-elasticsearch/wiki/Spring-Data-Elasticsearch---Spring-Boot---version-matrix</p>
+<pre><code class="language-shell">$  docker pull elasticsearch:2.4.6
+</code></pre>
+<p>查看镜像</p>
+<pre><code class="language-shell">$  docker images
+</code></pre>
+<figure data-type="image" tabindex="2"><img src="https://img-blog.csdnimg.cn/20190605113028725.png" alt="在这里插入图片描述" loading="lazy"></figure>
+<h4 id="3通过镜像启动一个容器并将9200和9300端口映射到本机">3.通过镜像，启动一个容器，并将9200和9300端口映射到本机</h4>
+<pre><code class="language-shell">$ docker run -d -p 9200:9200 -p 9300:9300 --name elasticsearch elasticsearch:2.4.6
+</code></pre>
+<h4 id="4-查看容器">4. 查看容器</h4>
+<pre><code class="language-shell">$ docker ps #查看已启动容器
+$ docker ps -a #查看所有容器，包括停止的
+</code></pre>
+<figure data-type="image" tabindex="3"><img src="https://img-blog.csdnimg.cn/2019060511362011.png" alt="在这里插入图片描述" loading="lazy"></figure>
+<h4 id="5查看是否安装成功">5.查看是否安装成功</h4>
+<pre><code class="language-shell">$ curl http://localhost:9200
+{
+  &quot;name&quot; : &quot;Sean Cassidy&quot;,
+  &quot;cluster_name&quot; : &quot;elasticsearch&quot;,
+  &quot;cluster_uuid&quot; : &quot;4F4r988CQsOPZZ7jbb9yWg&quot;,
+  &quot;version&quot; : {
+    &quot;number&quot; : &quot;2.4.6&quot;,
+    &quot;build_hash&quot; : &quot;5376dca9f70f3abef96a77f4bb22720ace8240fd&quot;,
+    &quot;build_timestamp&quot; : &quot;2017-07-18T12:17:44Z&quot;,
+    &quot;build_snapshot&quot; : false,
+    &quot;lucene_version&quot; : &quot;5.5.4&quot;
+  },
+  &quot;tagline&quot; : &quot;You Know, for Search&quot;
+}
+</code></pre>
+<h3 id="安装head插件">安装head插件</h3>
+<h4 id="1进入容器">1.进入容器</h4>
+<pre><code class="language-shell">$ docker exec -it d011a9da6f79/bin/bash #d011a9da6f79为容器id
+</code></pre>
+<p>到/bin目录下，执行plugin命令</p>
+<pre><code class="language-shell">$ cd bin$ plugin install mobz/elasticsearch-head
+</code></pre>
+<figure data-type="image" tabindex="4"><img src="https://img-blog.csdnimg.cn/20190605113722321.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"></figure>
+<h4 id="2安装完成后浏览器访问">2.安装完成后，浏览器访问</h4>
+<p>http://localhost:9200/_plugin/head/</p>
+<p><img src="https://img-blog.csdnimg.cn/20190605113857324.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"><br>
+<strong>如果对你有帮助，点个赞吧！</strong>😘</p>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://wqyuu.github.io/blog/post/zookeeper-fen-bu-shi-suo-de-jian-dan-shi-xian">
+              <h3 class="post-title">
+                下一篇：Zookeeper分布式锁的简单实现
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+        
+          <div id="gitalk-container"></div>
+        
+
+        
+      
+
+      <div class="site-footer">
+  <div class="slogan">秉忠贞之志,守谦退之节</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  Powered by <a href="https://github.com/wqyuu" target="_blank">Wqyuu</a> | <a class="rss" href="https://wqyuu.github.io/blog/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+  
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+    <script>
+
+      var gitalk = new Gitalk({
+        clientID: 'ad662aee99e9d77de1aa',
+        clientSecret: 'b74b253f75d653647fccdfe37d7d554405fc6ddc',
+        repo: 'blog',
+        owner: 'wqyuu',
+        admin: ['wqyuu'],
+        id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+        distractionFreeMode: false  // Facebook-like distraction free mode
+      })
+
+      gitalk.render('gitalk-container')
+
+    </script>
+  
+
+  
+
+
+
+
+  </body>
+</html>

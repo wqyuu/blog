@@ -1,0 +1,227 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>Zookeeper入门—ZK命令行【ACL权限控制】 | Wqyuu</title>
+<meta name="description" content="秉忠贞之志,守谦退之节">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://wqyuu.github.io/blog/favicon.ico?v=1582020047129">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://wqyuu.github.io/blog/styles/main.css">
+
+
+  
+    <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css" />
+  
+
+  
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://wqyuu.github.io/blog">
+        <img class="avatar" src="https://wqyuu.github.io/blog/images/avatar.png?v=1582020047129" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://wqyuu.github.io/blog">
+        <h1 class="site-title">Wqyuu</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="https://wqyuu.github.io/blog" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+            <div class="feature-container" style="background-image: url('https://wqyuu.github.io/blog/post-images/zookeeper-ru-men-zk-ming-ling-xing-acl-quan-xian-kong-zhi.jpg')">
+            </div>
+          
+          <h2 class="post-title">Zookeeper入门—ZK命令行【ACL权限控制】</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2019-04-12</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://wqyuu.github.io/blog/tag/zookeeper">
+                    zookeeper
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="acl权限控制">ACL权限控制</h2>
+<ul>
+<li>针对节点可以设置相关读写等权限，目的为了保障数据安全性</li>
+<li>权限permissions可以指定不同的权限范围以及角色</li>
+</ul>
+<h4 id="acl命令行">ACL命令行</h4>
+<ul>
+<li>getAcl：获取某个节点的acl权限信息</li>
+<li>setAcl：设置某个节点的acl权限信息</li>
+<li>addauth：输入认证权限信息，注册时输入明文密码（登录）但是在zk的系统里，密码时以加密的形式存在的</li>
+</ul>
+<h4 id="acl的构成-一">ACL的构成 一</h4>
+<ul>
+<li>zk的acl通过[scheme: id : permissions]来构成权限列表</li>
+<li>scheme ：代表采用的某种权限机制</li>
+<li>id：代表允许访问的用户</li>
+<li>permissions：权限组合字符串</li>
+</ul>
+<h4 id="acl的构成-二-scheme">ACL的构成 二 - scheme</h4>
+<ul>
+<li>world：world下只有一个id，即只有一个用户，也就是anyone，那么组合的写法就是world:anyone:[permissions]<img src="https://wqyuu.github.io/blog/post-images/1582017557614.jpg" alt="" loading="lazy"></li>
+<li>auth：代表认证登录，需要注册用户有权限就可以，形式为auth:user:password:[permissions]</li>
+<li>digest：需要对密码加密才能访问，组合形式为digest:username:BASE64(SHA1(password)):[permissions]</li>
+<li>auth与digest的区别就是，前者明文，后者密文setAcl /path auth:lee:lee:cdrwa与setAcl /path digest:lee:BASE64(SHA1(password)) cdrwa是等价的，在通过 addauth digest lee:lee后都能指定操作指定节点的权限</li>
+<li>ip：当设置为ip指定的ip地址，此时限制ip进行访问，比如ip:192.168.1.1:[permissions]</li>
+<li>super：代表超级管理员，拥有所有的权限</li>
+</ul>
+<h4 id="acl的构成-三-permissions">ACL的构成 三 -permissions</h4>
+<p><strong>权限字符串缩写crdwa</strong></p>
+<ul>
+<li>create：创建子节点</li>
+<li>read：获取节点/子节点</li>
+<li>write：设置节点数据</li>
+<li>delete：删除子节点</li>
+<li>admin：设置权限</li>
+</ul>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://wqyuu.github.io/blog/post/zookeeper-ru-men-zk-te-xing-watcher-ji-zhi-er">
+              <h3 class="post-title">
+                下一篇：Zookeeper入门—ZK特性【watcher机制（二）】
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+        
+          <div id="gitalk-container"></div>
+        
+
+        
+      
+
+      <div class="site-footer">
+  <div class="slogan">秉忠贞之志,守谦退之节</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  Powered by <a href="https://github.com/wqyuu" target="_blank">Wqyuu</a> | <a class="rss" href="https://wqyuu.github.io/blog/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+  
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+    <script>
+
+      var gitalk = new Gitalk({
+        clientID: 'ad662aee99e9d77de1aa',
+        clientSecret: 'b74b253f75d653647fccdfe37d7d554405fc6ddc',
+        repo: 'blog',
+        owner: 'wqyuu',
+        admin: ['wqyuu'],
+        id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+        distractionFreeMode: false  // Facebook-like distraction free mode
+      })
+
+      gitalk.render('gitalk-container')
+
+    </script>
+  
+
+  
+
+
+
+
+  </body>
+</html>

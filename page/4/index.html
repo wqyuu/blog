@@ -1,0 +1,195 @@
+
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>Wqyuu</title>
+<meta name="description" content="秉忠贞之志,守谦退之节">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://wqyuu.github.io/blog/favicon.ico?v=1582020047129">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://wqyuu.github.io/blog/styles/main.css">
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://wqyuu.github.io/blog">
+        <img class="avatar" src="https://wqyuu.github.io/blog/images/avatar.png?v=1582020047129" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://wqyuu.github.io/blog">
+        <h1 class="site-title">Wqyuu</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="https://wqyuu.github.io/blog" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        
+        
+<section class="post-item">
+    <div class="content">
+      <a href="https://wqyuu.github.io/blog/post/jian-dan-tu-jie-cong-ling-da-jian-springboot">
+        <h2 class="post-title">简单图解从零搭建SpringBoot</h2>
+      </a>
+      <div class="post-abstract">
+        <p>利用IDEA创建项目，也可以直接在<a href="https://start.spring.io/">https://start.spring.io/</a>上面创建</p>
+
+      </div>
+      <div class="post-info">
+        <span><i class="icon icon-calendar-outline"></i> 2019-02-17</span>
+        
+          <span>
+            <i class="icon icon-pricetags-outline"></i>
+            
+              <a href="https://wqyuu.github.io/blog/tag/springboot">
+                springboot
+                
+              </a>
+            
+          </span>
+        
+      </div>
+    </div>
+    
+      <a href="https://wqyuu.github.io/blog/post/jian-dan-tu-jie-cong-ling-da-jian-springboot">
+        <div class="feature-container" style="background-image: url('https://wqyuu.github.io/blog/post-images/jian-dan-tu-jie-cong-ling-da-jian-springboot.jpg')">
+        </div>
+      </a>
+    
+  </section>
+
+<section class="post-item">
+    <div class="content">
+      <a href="https://wqyuu.github.io/blog/post/hello-gridea">
+        <h2 class="post-title">Hello Gridea</h2>
+      </a>
+      <div class="post-abstract">
+        <p>👏  欢迎使用 <strong>Gridea</strong> ！<br>
+✍️  <strong>Gridea</strong> 一个静态博客写作客户端。你可以用它来记录你的生活、心情、知识、笔记、创意... ...</p>
+
+      </div>
+      <div class="post-info">
+        <span><i class="icon icon-calendar-outline"></i> 2018-12-12</span>
+        
+          <span>
+            <i class="icon icon-pricetags-outline"></i>
+            
+              <a href="https://wqyuu.github.io/blog/tag/rO3f4r3RO">
+                Gridea
+                
+              </a>
+            
+          </span>
+        
+      </div>
+    </div>
+    
+      <a href="https://wqyuu.github.io/blog/post/hello-gridea">
+        <div class="feature-container" style="background-image: url('https://wqyuu.github.io/blog/post-images/hello-gridea.png')">
+        </div>
+      </a>
+    
+  </section>
+
+
+<div class="pagination-container">
+  
+    <a href="https://wqyuu.github.io/blog/page/3/" class="prev"><i class="icon-arrow-ios-back-outline"></i> 上一页</a>
+  
+  
+</div>
+
+
+      </div>
+
+      <div class="site-footer">
+  <div class="slogan">秉忠贞之志,守谦退之节</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  Powered by <a href="https://github.com/wqyuu" target="_blank">Wqyuu</a> | <a class="rss" href="https://wqyuu.github.io/blog/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+
+  </body>
+</html>

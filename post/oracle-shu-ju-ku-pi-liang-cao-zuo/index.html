@@ -1,0 +1,242 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>Oracle数据库批量操作 | Wqyuu</title>
+<meta name="description" content="秉忠贞之志,守谦退之节">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://wqyuu.github.io/blog/favicon.ico?v=1582020047129">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://wqyuu.github.io/blog/styles/main.css">
+
+
+  
+    <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css" />
+  
+
+  
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://wqyuu.github.io/blog">
+        <img class="avatar" src="https://wqyuu.github.io/blog/images/avatar.png?v=1582020047129" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://wqyuu.github.io/blog">
+        <h1 class="site-title">Wqyuu</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="https://wqyuu.github.io/blog" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+            <div class="feature-container" style="background-image: url('https://wqyuu.github.io/blog/post-images/oracle-shu-ju-ku-pi-liang-cao-zuo.jpg')">
+            </div>
+          
+          <h2 class="post-title">Oracle数据库批量操作</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2019-05-12</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://wqyuu.github.io/blog/tag/oracle">
+                    oracle
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="一次对sql修改优化操作速度的记录">一次对SQL修改，优化操作速度的记录</h2>
+<p>我需要把edit_stu表数据查出来批量插入到student_m中，<br>
+由于SQL批量操作执行速度特别慢，尝试更换SQL语句解决速度问题<br>
+根据需要我有两个方法做这个批量操作：</p>
+<ul>
+<li>方法1：</li>
+</ul>
+<pre><code class="language-xml">	&lt;insert id=&quot;insert1&quot; parameterType=&quot;java.util.HashMap&quot;&gt;
+		 begin
+        &lt;foreach collection=&quot;list&quot; item=&quot;item&quot; index=&quot;index&quot; separator=&quot;;&quot;&gt;
+        	 insert into student_m ( VERSION_ID, SYS_ID)
+        values
+            ( #{item.versionId,jdbcType=VARCHAR},
+			#{item.sysId,jdbcType=VARCHAR}
+        &lt;/foreach&gt;
+        ;end;
+    &lt;/insert&gt;
+</code></pre>
+<ul>
+<li>方法2</li>
+</ul>
+<pre><code class="language-xml"> &lt;!--拷贝数据到查询表--&gt;
+    &lt;insert id=&quot;insertCurrentBySelect&quot;  parameterType=&quot;java.util.HashMap&quot;&gt;
+    	INSERT INTO  student_m ( VERSION_ID, SYS_ID)
+	    SELECT   VERSION_ID, SYS_ID
+      	FROM  edit_stu
+	    WHERE VERSION_ID=#{versionId,jdbcType=VARCHAR}
+    &lt;/insert&gt;
+</code></pre>
+<h2 id="两个方法操作速度对比">两个方法操作速度对比：</h2>
+<table>
+<thead>
+<tr>
+<th>数据量</th>
+<th>方法1</th>
+<th>方法2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>50</td>
+<td>2s</td>
+<td>2.5s</td>
+</tr>
+<tr>
+<td>500</td>
+<td>2.5s</td>
+<td>5.2s</td>
+</tr>
+</tbody>
+</table>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://wqyuu.github.io/blog/post/mybatis-dui-yu-java-dui-xiang-li-de-mei-ju-lei-xing-chu-li">
+              <h3 class="post-title">
+                下一篇：MyBatis对于Java对象里的枚举类型处理
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+        
+          <div id="gitalk-container"></div>
+        
+
+        
+      
+
+      <div class="site-footer">
+  <div class="slogan">秉忠贞之志,守谦退之节</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  Powered by <a href="https://github.com/wqyuu" target="_blank">Wqyuu</a> | <a class="rss" href="https://wqyuu.github.io/blog/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+  
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+    <script>
+
+      var gitalk = new Gitalk({
+        clientID: 'ad662aee99e9d77de1aa',
+        clientSecret: 'b74b253f75d653647fccdfe37d7d554405fc6ddc',
+        repo: 'blog',
+        owner: 'wqyuu',
+        admin: ['wqyuu'],
+        id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+        distractionFreeMode: false  // Facebook-like distraction free mode
+      })
+
+      gitalk.render('gitalk-container')
+
+    </script>
+  
+
+  
+
+
+
+
+  </body>
+</html>

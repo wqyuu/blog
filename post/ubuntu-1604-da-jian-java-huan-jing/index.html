@@ -1,0 +1,247 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>Ubuntu 16.04搭建JAVA环境 | Wqyuu</title>
+<meta name="description" content="秉忠贞之志,守谦退之节">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://wqyuu.github.io/blog/favicon.ico?v=1582020047129">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://wqyuu.github.io/blog/styles/main.css">
+
+
+  
+    <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css" />
+  
+
+  
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://wqyuu.github.io/blog">
+        <img class="avatar" src="https://wqyuu.github.io/blog/images/avatar.png?v=1582020047129" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://wqyuu.github.io/blog">
+        <h1 class="site-title">Wqyuu</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="https://wqyuu.github.io/blog" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+            <div class="feature-container" style="background-image: url('https://wqyuu.github.io/blog/post-images/ubuntu-1604-da-jian-java-huan-jing.jpg')">
+            </div>
+          
+          <h2 class="post-title">Ubuntu 16.04搭建JAVA环境</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2019-05-13</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://wqyuu.github.io/blog/tag/Linux">
+                    Linux
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <p>搭建环境：Ubuntu 16.04 ×64<br>
+JDK :jdk-8u171-linux-x64.tar.gz</p>
+<ol>
+<li>
+<p>首先下载linux对应的安装包<br>
+下载地址：<a href="http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html">http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html</a><br>
+下载完成后，Linux默认下载位置在当前目录下的Download或下载文件夹下，通过命令cd ~/Downloads或cd  ~/下载即可查看到对应的文件。</p>
+</li>
+<li>
+<p>解压安装包jdk-8u171-linux-x64.tar.gz<br>
+tar -zxvf jdk-8u171-linux-x64.tar.gz</p>
+</li>
+<li>
+<p>将解压后的文件夹移到/usr/lib目录下<br>
+切换到 /usr/lib目录下<br>
+cd  /usr/lib<br>
+并新建jdk目录<br>
+sudo mkdir jdk</p>
+</li>
+<li>
+<p>将解压的jdk文件复制到新建的/usr/lib/jdk目录下来<br>
+sudo mv ~/jdk1.8.0_171/usr/lib/jdk<br>
+执行命令后可到 usr/lib/jdk 目录下查看是否复制成功</p>
+</li>
+<li>
+<p>配置java环境变量<br>
+这里是将环境变量配置在etc/profile，即为所有用户配置JDK环境。<br>
+使用命令打开/etc/profile文件<br>
+sudo vi /etc/profile<br>
+在末尾添加以下几行文字：</p>
+<pre><code class="language-config">#set java env
+export JAVA_HOME=/usr/lib/jdk/jdk1.8.0_171
+export JRE_HOME=${JAVA_HOME}/jre    
+export CLASSPATH=.:${JAVA_HOME}/lib:${JRE_HOME}/lib    
+export PATH=${JAVA_HOME}/bin:$PATH 
+</code></pre>
+</li>
+<li>
+<p>执行命令使修改立即生效`<br>
+source /etc/profile</p>
+</li>
+<li>
+<p>配置软连接<br>
+软连接相当于windows系统中的快捷键，部分软件可能会从/usr/bin目录下查找Java，因此添加该软连接防止其他软件查找不到的情况。</p>
+</li>
+</ol>
+<pre><code>sudo update-alternatives --install /usr/bin/java  java  /usr/lib/jdk/jdk1.8.0_171/bin/java 300   
+sudo update-alternatives --install /usr/bin/javac  javac  /usr/lib/jdk/jdk1.8.0_171/bin/javac 300 
+扩展：在Ubuntu中通过update-alternatives切换jdk版本
+</code></pre>
+<ol start="8">
+<li>测试安装是否成功<br>
+在终端输入，出现版本号则表示安装成功<br>
+java -version</li>
+</ol>
+<figure data-type="image" tabindex="1"><img src="https://wqyuu.github.io/blog/post-images/1582020044962.jpg" alt="" loading="lazy"></figure>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://wqyuu.github.io/blog/post/oracle-shu-ju-ku-pi-liang-cao-zuo">
+              <h3 class="post-title">
+                下一篇：Oracle数据库批量操作
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+        
+          <div id="gitalk-container"></div>
+        
+
+        
+      
+
+      <div class="site-footer">
+  <div class="slogan">秉忠贞之志,守谦退之节</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  Powered by <a href="https://github.com/wqyuu" target="_blank">Wqyuu</a> | <a class="rss" href="https://wqyuu.github.io/blog/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+  
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+    <script>
+
+      var gitalk = new Gitalk({
+        clientID: 'ad662aee99e9d77de1aa',
+        clientSecret: 'b74b253f75d653647fccdfe37d7d554405fc6ddc',
+        repo: 'blog',
+        owner: 'wqyuu',
+        admin: ['wqyuu'],
+        id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+        distractionFreeMode: false  // Facebook-like distraction free mode
+      })
+
+      gitalk.render('gitalk-container')
+
+    </script>
+  
+
+  
+
+
+
+
+  </body>
+</html>

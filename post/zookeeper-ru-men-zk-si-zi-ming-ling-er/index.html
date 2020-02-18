@@ -1,0 +1,236 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>Zookeeper入门—ZK四字命令（二） | Wqyuu</title>
+<meta name="description" content="秉忠贞之志,守谦退之节">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://wqyuu.github.io/blog/favicon.ico?v=1582020047129">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://wqyuu.github.io/blog/styles/main.css">
+
+
+  
+    <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css" />
+  
+
+  
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://wqyuu.github.io/blog">
+        <img class="avatar" src="https://wqyuu.github.io/blog/images/avatar.png?v=1582020047129" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://wqyuu.github.io/blog">
+        <h1 class="site-title">Wqyuu</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="https://wqyuu.github.io/blog" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+            <div class="feature-container" style="background-image: url('https://wqyuu.github.io/blog/post-images/zookeeper-ru-men-zk-si-zi-ming-ling-er.jpg')">
+            </div>
+          
+          <h2 class="post-title">Zookeeper入门—ZK四字命令（二）</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2019-04-18</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://wqyuu.github.io/blog/tag/zookeeper">
+                    zookeeper
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h4 id="mntr">mntr</h4>
+<p>mntr命令用于输出比stat命令更为详尽的服务器统计信息，包括请求处理的延迟情况、服务器内存数据库大小和集群的数据同步情况。</p>
+<pre><code class="language-shell">$ echo mntr | nc localhost 2181
+zk_version  3.4.13-2d71af4dbe22557fda74f9a9b4309b15a7487f03, built on 06/29/2018 04:05 GMT
+zk_avg_latency  0
+zk_max_latency  0
+zk_min_latency  0
+zk_packets_received 14
+zk_packets_sent 13
+zk_num_alive_connections    1
+zk_outstanding_requests 0
+zk_server_state follower
+zk_znode_count  4
+zk_watch_count  0
+zk_ephemerals_count 0
+zk_approximate_data_size    27
+zk_open_file_descriptor_count   30
+zk_max_file_descriptor_count    65536
+zk_fsync_threshold_exceed_count 0
+</code></pre>
+<h3 id="wchs">wchs</h3>
+<p>wchs命令用于输出当前服务器上管理的Watcher的概要信息。</p>
+<pre><code class="language-shell">$ echo wchs | nc localhost 2181
+0 connections watching 0 paths
+Total watches:0
+</code></pre>
+<h3 id="wchc">wchc</h3>
+<p>wchc命令用于输出当前服务器上管理的Watcher的详细信息，以会话为单位进行归组，同时列出被该会话注册了Watcher的节点路径。<br>
+需要先进入zookeeper/conf/ 修改zoo.cfg文件，在最后一行增加：</p>
+<pre><code class="language-linux">41w.commands.whitelist=*
+</code></pre>
+<p>然后重启zk服务</p>
+<pre><code class="language-shell">$ echo wchc|nc localhost 2181
+0x16caebf7e4c0001
+	/imooc/test
+	/imooc
+</code></pre>
+<h3 id="wchp">wchp</h3>
+<p>wchp命令和wchc命令非常类似，也是用于输出当前服务器上管理的Watcher的详细信息，不同点在于wchp命令的输出信息以节点路径为单位进行归组。</p>
+<pre><code class="language-shell">$ echo wchp|nc localhost 2181
+/imooc/test
+	0x16caebf7e4c0001
+/imooc
+	0x16caebf7e4c0001
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://wqyuu.github.io/blog/post/zookeeper-ru-men-zk-si-zi-ming-ling-yi">
+              <h3 class="post-title">
+                下一篇：Zookeeper入门—ZK四字命令（一）
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+        
+          <div id="gitalk-container"></div>
+        
+
+        
+      
+
+      <div class="site-footer">
+  <div class="slogan">秉忠贞之志,守谦退之节</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  Powered by <a href="https://github.com/wqyuu" target="_blank">Wqyuu</a> | <a class="rss" href="https://wqyuu.github.io/blog/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+  
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+    <script>
+
+      var gitalk = new Gitalk({
+        clientID: 'ad662aee99e9d77de1aa',
+        clientSecret: 'b74b253f75d653647fccdfe37d7d554405fc6ddc',
+        repo: 'blog',
+        owner: 'wqyuu',
+        admin: ['wqyuu'],
+        id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+        distractionFreeMode: false  // Facebook-like distraction free mode
+      })
+
+      gitalk.render('gitalk-container')
+
+    </script>
+  
+
+  
+
+
+
+
+  </body>
+</html>

@@ -1,0 +1,289 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>Zookeeper入门—ZK四字命令（一） | Wqyuu</title>
+<meta name="description" content="秉忠贞之志,守谦退之节">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://wqyuu.github.io/blog/favicon.ico?v=1582020047129">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://wqyuu.github.io/blog/styles/main.css">
+
+
+  
+    <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css" />
+  
+
+  
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://wqyuu.github.io/blog">
+        <img class="avatar" src="https://wqyuu.github.io/blog/images/avatar.png?v=1582020047129" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://wqyuu.github.io/blog">
+        <h1 class="site-title">Wqyuu</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="https://wqyuu.github.io/blog" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+            <div class="feature-container" style="background-image: url('https://wqyuu.github.io/blog/post-images/zookeeper-ru-men-zk-si-zi-ming-ling-yi.jpg')">
+            </div>
+          
+          <h2 class="post-title">Zookeeper入门—ZK四字命令（一）</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2019-04-15</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://wqyuu.github.io/blog/tag/zookeeper">
+                    zookeeper
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <blockquote>
+<p>ZooKeeper中有一系列的命令可以查看服务器的运行状态，它们的长度通常都是4个英文字母，因此又被称之为“四字命令”。</p>
+</blockquote>
+<!-- more -->
+<p>常用命令：<br>
+使用方式： echo {command} | nc localhost 2181</p>
+<blockquote>
+<p>如果没有nc需要进行安装</p>
+</blockquote>
+<h3 id="stat">stat</h3>
+<p>stat命令用于获取ZooKeeper服务器的运行时状态信息，包括基本的ZooKeeper版本、打包信息、运行时角色、集群数据节点个数等信息。</p>
+<pre><code class="language-shell">root@skt-otto:/data/zookeeper-3.4.6/bin# echo stat|nc 192.168.137.101 2181
+Zookeeper version: 3.4.6-1569965, built on 02/20/2014 09:09 GMT
+Clients:
+ /192.168.137.101:56506[0](queued=0,recved=1,sent=0)
+
+Latency min/avg/max: 0/0/8
+Received: 82
+Sent: 81
+Connections: 1
+Outstanding: 0
+Zxid: 0x6bf
+Mode: standalone
+Node count: 151
+</code></pre>
+<h3 id="ruok">ruok</h3>
+<p>ruok命令用于输出当前ZooKeeper服务器是否正在运行。该命令的名字非常有趣，其谐音正好是“Are you ok”。执行该命令后，如果当前ZooKeeper服务器正在运行，那么返回“imok”，否则没有任何响应输出。</p>
+<pre><code class="language-shell">root@skt-otto:/data/zookeeper-3.4.6/bin# echo ruok|nc 192.168.137.101 2181
+imok
+</code></pre>
+<h3 id="dump">dump</h3>
+<p>dump命令用于输出当前集群的所有会话信息，包括这些会话的会话ID，以及每个会话创建的临时节点等信息。<br>
+先创建临时节点，注意临时节点要加上参数-e！<br>
+然后使用命令查看临时节点信息</p>
+<pre><code class="language-shell">[zk: localhost:2181(CONNECTED) 0] create /imooc/tmp 1
+Created /imooc/tmp
+[zk: localhost:2181(CONNECTED) 5] create  -e /imooc/tmp/test 2
+Created /imooc/tmp/test
+[zk: localhost:2181(CONNECTED) 6] get /imooc/tmp/test         
+2
+cZxid = 0x6c2
+ctime = Mon Aug 19 21:03:15 CST 2019
+mZxid = 0x6c2
+mtime = Mon Aug 19 21:03:15 CST 2019
+pZxid = 0x6c2
+cversion = 0
+dataVersion = 0
+aclVersion = 0
+ephemeralOwner = 0x16ca9d379180001
+dataLength = 1
+numChildren = 0
+[zk: localhost:2181(CONNECTED) 7] root@skt-otto:/data/zookeeper-3.4.6/bin# echo dump |nc localhost 2181
+SessionTracker dump:
+Session Sets (1):
+1 expire at Mon Aug 19 21:03:54 CST 2019:
+	0x16ca9d379180001
+ephemeral nodes dump:
+Sessions with Ephemerals (1):
+0x16ca9d379180001:
+	/imooc/tmp/test
+</code></pre>
+<h3 id="conf">conf</h3>
+<p>conf命令用于输出ZooKeeper服务器运行时使用的基本配置信息，包括clientPort、dataDir和tickTime等。</p>
+<pre><code class="language-shell">root@skt-otto:/data/zookeeper-3.4.6/bin# echo conf |nc localhost 2181
+clientPort=2181
+dataDir=/data/zookeeper-3.4.6/data/version-2
+dataLogDir=/data/zookeeper-3.4.6/logs/version-2
+tickTime=2000
+maxClientCnxns=60
+minSessionTimeout=4000
+maxSessionTimeout=40000
+serverId=0
+</code></pre>
+<h3 id="cons">cons</h3>
+<p>cons命令用于输出当前这台服务器上所有客户端连接的详细信息，包括每个客户端的客户端IP、会话ID和最后一次与服务器交互的操作类型等。</p>
+<pre><code class="language-shell">root@skt-otto:/data/zookeeper-3.4.6/bin# echo cons |nc localhost 2181
+ /127.0.0.1:50464[0](queued=0,recved=1,sent=0)
+</code></pre>
+<h3 id="envi">envi</h3>
+<p>envi命令用于输出ZooKeeper所在服务器运行时的环境信息，包括os.version、java.version和user.home等。</p>
+<pre><code class="language-shell">root@skt-otto:/data/zookeeper-3.4.6/bin# echo envi |nc localhost 2181
+Environment:
+zookeeper.version=3.4.6-1569965, built on 02/20/2014 09:09 GMT
+host.name=skt-otto
+java.version=1.8.0_211
+java.vendor=Oracle Corporation
+java.home=/usr/lib/jdk/jdk1.8.0_211/jre
+java.class.path=/data/zookeeper-3.4.6/bin/../build/classes:/data/zookeeper-3.4.6/bin/../build/lib/*.jar:/data/zookeeper-3.4.6/bin/../lib/slf4j-log4j12-1.6.1.jar:/data/zookeeper-3.4.6/bin/../lib/slf4j-api-1.6.1.jar:/data/zookeeper-3.4.6/bin/../lib/netty-3.7.0.Final.jar:/data/zookeeper-3.4.6/bin/../lib/log4j-1.2.16.jar:/data/zookeeper-3.4.6/bin/../lib/jline-0.9.94.jar:/data/zookeeper-3.4.6/bin/../zookeeper-3.4.6.jar:/data/zookeeper-3.4.6/bin/../src/java/lib/*.jar:/data/zookeeper-3.4.6/bin/../conf:/data/zookeeper-3.4.6/bin/../build/classes:/data/zookeeper-3.4.6/bin/../build/lib/*.jar:/data/zookeeper-3.4.6/bin/../lib/slf4j-log4j12-1.6.1.jar:/data/zookeeper-3.4.6/bin/../lib/slf4j-api-1.6.1.jar:/data/zookeeper-3.4.6/bin/../lib/netty-3.7.0.Final.jar:/data/zookeeper-3.4.6/bin/../lib/log4j-1.2.16.jar:/data/zookeeper-3.4.6/bin/../lib/jline-0.9.94.jar:/data/zookeeper-3.4.6/bin/../zookeeper-3.4.6.jar:/data/zookeeper-3.4.6/bin/../src/java/lib/*.jar:/data/zookeeper-3.4.6/bin/../conf:.:/usr/lib/jdk/jdk1.8.0_211/lib://usr/lib/jdk/jdk1.8.0_211/jre/lib
+java.library.path=/usr/java/packages/lib/amd64:/usr/lib64:/lib64:/lib:/usr/lib
+java.io.tmpdir=/tmp
+java.compiler=&lt;NA&gt;
+os.name=Linux
+os.arch=amd64
+os.version=4.15.0-29-generic
+user.name=root
+user.home=/root
+user.dir=/data/zookeeper-3.4.6/bin
+</code></pre>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://wqyuu.github.io/blog/post/zookeeper-ru-men-zk-ming-ling-xing-acl-quan-xian-kong-zhi-er">
+              <h3 class="post-title">
+                下一篇：Zookeeper入门—ZK命令行【ACL权限控制（二）】
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+        
+          <div id="gitalk-container"></div>
+        
+
+        
+      
+
+      <div class="site-footer">
+  <div class="slogan">秉忠贞之志,守谦退之节</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  Powered by <a href="https://github.com/wqyuu" target="_blank">Wqyuu</a> | <a class="rss" href="https://wqyuu.github.io/blog/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+  
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+    <script>
+
+      var gitalk = new Gitalk({
+        clientID: 'ad662aee99e9d77de1aa',
+        clientSecret: 'b74b253f75d653647fccdfe37d7d554405fc6ddc',
+        repo: 'blog',
+        owner: 'wqyuu',
+        admin: ['wqyuu'],
+        id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+        distractionFreeMode: false  // Facebook-like distraction free mode
+      })
+
+      gitalk.render('gitalk-container')
+
+    </script>
+  
+
+  
+
+
+
+
+  </body>
+</html>

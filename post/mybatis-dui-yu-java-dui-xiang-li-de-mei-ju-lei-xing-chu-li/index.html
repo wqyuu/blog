@@ -1,0 +1,357 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>MyBatis对于Java对象里的枚举类型处理 | Wqyuu</title>
+<meta name="description" content="秉忠贞之志,守谦退之节">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://wqyuu.github.io/blog/favicon.ico?v=1582020047129">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://wqyuu.github.io/blog/styles/main.css">
+
+
+  
+    <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css" />
+  
+
+  
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://wqyuu.github.io/blog">
+        <img class="avatar" src="https://wqyuu.github.io/blog/images/avatar.png?v=1582020047129" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://wqyuu.github.io/blog">
+        <h1 class="site-title">Wqyuu</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="https://wqyuu.github.io/blog" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+            <div class="feature-container" style="background-image: url('https://wqyuu.github.io/blog/post-images/mybatis-dui-yu-java-dui-xiang-li-de-mei-ju-lei-xing-chu-li.jpg')">
+            </div>
+          
+          <h2 class="post-title">MyBatis对于Java对象里的枚举类型处理</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2019-05-10</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://wqyuu.github.io/blog/tag/myBatis">
+                    myBatis
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <hr>
+<p>mybatis里怎么处理枚举类型属性的增删改查呢？</p>
+<p>要求：</p>
+<p>插入的时候，会用枚举的定义插入数据库，我们希望在数据库中看到的是数字或者其他东西；</p>
+<p>查询的时候，数据库的值可以自动转换为我们对应的枚举值。</p>
+<p>举例，我有一个这样的枚举类型：</p>
+<pre><code class="language-java">package cn.com.shuyangyang.domain;  
+  
+public enum UserStatus {  
+  
+    /** 无效*/  
+    DISABLED(0),  
+    /** 有效 */  
+    AVAILABLE(1);  
+      
+    private int status;  
+      
+    UserStatus(int status){  
+        this.status = status;  
+    }  
+  
+    public int getStatus() {  
+        return status;  
+    }  
+      
+}  
+</code></pre>
+<p>我们插入数据库中，数据库应该为我们保存0或者1</p>
+<p>我们可以使用mybatis自带的枚举类型EnumOrdinalTypeHandler</p>
+<p>举例如下：</p>
+<pre><code class="language-xml">&lt;insert id=&quot;addUser&quot; parameterType=&quot;User&quot;&gt;  
+    INSERT INTO t_user(USER_ID,USER_NAME,LOGIN_NAME,  
+    LOGIN_PASSWORD,USER_STATUS,CREATE_TIME,UPDATE_TIME)  
+    VALUES(  
+        #{user_id},  
+        #{user_name},  
+        #{login_name},  
+        #{login_password},  
+        #{user_status, typeHandler=org.apache.ibatis.type.EnumOrdinalTypeHandler},  
+        #{create_time},  
+        #{update_time}  
+    )  
+&lt;/insert&gt;
+</code></pre>
+<p>我们的UserStatus插入的时候是UserStatus.AVAILABLE</p>
+<p>执行完毕后，看结果：</p>
+<figure data-type="image" tabindex="1"><img src="https://img-blog.csdnimg.cn/20190506101619818.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"></figure>
+<p>看，是不是结果是我们期望的那样。</p>
+<p>但是问题来了？</p>
+<p>我们查询的时候报错了：Error querying database.  Cause: java.lang.IllegalArgumentException: No enum constant cn.com.shuyangyang.mybatis.UserStatus.1</p>
+<p>我们可以自定义这样的一个EnumStatusHandler：</p>
+<pre><code class="language-java">package cn.com.shuyangyang.mybatis;  
+  
+import java.sql.CallableStatement;  
+import java.sql.PreparedStatement;  
+import java.sql.ResultSet;  
+import java.sql.SQLException;  
+  
+import org.apache.ibatis.type.BaseTypeHandler;  
+import org.apache.ibatis.type.JdbcType;  
+  
+/** 
+ * Mybatis自定义转换类型 
+ * @author ShuYangYang 
+ * E-Mail:shuyangyang@aliyun.com 
+ * http://www.shuyangyang.com.cn 
+ * Date:2015年1月26日下午10:12:54 
+ * 
+ */  
+public class EnumStatusHandler extends BaseTypeHandler&lt;UserStatus&gt; {  
+      
+    private Class&lt;UserStatus&gt; type;  
+       
+    private final UserStatus[] enums;  
+   
+    /** 
+     * 设置配置文件设置的转换类以及枚举类内容，供其他方法更便捷高效的实现 
+     * @param type 配置文件中设置的转换类 
+     */  
+    public EnumStatusHandler(Class&lt;UserStatus&gt; type) {  
+        if (type == null)  
+            throw new IllegalArgumentException(&quot;Type argument cannot be null&quot;);  
+        this.type = type;  
+        this.enums = type.getEnumConstants();  
+        if (this.enums == null)  
+            throw new IllegalArgumentException(type.getSimpleName()  
+                    + &quot; does not represent an enum type.&quot;);  
+    }  
+  
+    @Override  
+    public void setNonNullParameter(PreparedStatement ps, int i,  
+            UserStatus parameter, JdbcType jdbcType) throws SQLException {  
+        // baseTypeHandler已经帮我们做了parameter的null判断  
+        ps.setInt(i, parameter.getStatus());  
+          
+    }  
+  
+    @Override  
+    public UserStatus getNullableResult(ResultSet rs, String columnName)  
+            throws SQLException {  
+        // 根据数据库存储类型决定获取类型，本例子中数据库中存放INT类型  
+        int i = rs.getInt(columnName);  
+           
+        if (rs.wasNull()) {  
+            return null;  
+        } else {  
+            // 根据数据库中的code值，定位EnumStatus子类  
+            return locateEnumStatus(i);  
+        }  
+    }  
+  
+    @Override  
+    public UserStatus getNullableResult(ResultSet rs, int columnIndex)  
+            throws SQLException {  
+        // 根据数据库存储类型决定获取类型，本例子中数据库中存放INT类型  
+        int i = rs.getInt(columnIndex);  
+        if (rs.wasNull()) {  
+            return null;  
+        } else {  
+            // 根据数据库中的code值，定位EnumStatus子类  
+            return locateEnumStatus(i);  
+        }  
+    }  
+  
+    @Override  
+    public UserStatus getNullableResult(CallableStatement cs, int columnIndex)  
+            throws SQLException {  
+        // 根据数据库存储类型决定获取类型，本例子中数据库中存放INT类型  
+        int i = cs.getInt(columnIndex);  
+        if (cs.wasNull()) {  
+            return null;  
+        } else {  
+            // 根据数据库中的code值，定位EnumStatus子类  
+            return locateEnumStatus(i);  
+        }  
+    }  
+      
+    /** 
+     * 枚举类型转换，由于构造函数获取了枚举的子类enums，让遍历更加高效快捷 
+     * @param code 数据库中存储的自定义code属性 
+     * @return code对应的枚举类 
+     */  
+    private UserStatus locateEnumStatus(int code) {  
+        for(UserStatus status : enums) {  
+            if(status.getStatus()==(Integer.valueOf(code))) {  
+                return status;  
+            }  
+        }  
+        throw new IllegalArgumentException(&quot;未知的枚举类型：&quot; + code + &quot;,请核对&quot; + type.getSimpleName());  
+    }  
+  
+}  
+</code></pre>
+<p>mapper.xml里这样配置：</p>
+<p>XML/HTML Code复制内容到剪贴板<br>
+<resultMap type="User" id="userResult"><br>
+……省略其他属性配置<br>
+<result column="USER_STATUS" property="user_status" typeHandler="cn.com.shuyangyang.mybatis.EnumStatusHandler"/><br>
+……省略其他属性配置<br>
+</resultMap><br>
+现在来看看结果：</p>
+<blockquote>
+<p>[User [user_id=782cba19-559f-41c3-a1b0-25fcac4cf118, user_name=系统管理员, login_name=admin, login_password=admin,user_status=AVAILABLE, create_time=Mon Jan 26 21:17:09 CST 2015, update_time=Mon Jan 26 21:17:09 CST 2015]]</p>
+</blockquote>
+<p>完美结果。</p>
+<p>转载自： http://www.shuyangyang.com.cn/jishuliangongfang/Javabiancheng/2015-01-26/229.html</p>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://wqyuu.github.io/blog/post/virtualboxubantu1604-lian-wang">
+              <h3 class="post-title">
+                下一篇：VirtualBox+ubantu16.04联网
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+        
+          <div id="gitalk-container"></div>
+        
+
+        
+      
+
+      <div class="site-footer">
+  <div class="slogan">秉忠贞之志,守谦退之节</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  Powered by <a href="https://github.com/wqyuu" target="_blank">Wqyuu</a> | <a class="rss" href="https://wqyuu.github.io/blog/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+  
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+    <script>
+
+      var gitalk = new Gitalk({
+        clientID: 'ad662aee99e9d77de1aa',
+        clientSecret: 'b74b253f75d653647fccdfe37d7d554405fc6ddc',
+        repo: 'blog',
+        owner: 'wqyuu',
+        admin: ['wqyuu'],
+        id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+        distractionFreeMode: false  // Facebook-like distraction free mode
+      })
+
+      gitalk.render('gitalk-container')
+
+    </script>
+  
+
+  
+
+
+
+
+  </body>
+</html>

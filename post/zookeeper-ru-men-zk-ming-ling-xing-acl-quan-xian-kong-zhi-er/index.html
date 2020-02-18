@@ -1,0 +1,229 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>Zookeeper入门—ZK命令行【ACL权限控制（二）】 | Wqyuu</title>
+<meta name="description" content="秉忠贞之志,守谦退之节">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://wqyuu.github.io/blog/favicon.ico?v=1582020047129">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://wqyuu.github.io/blog/styles/main.css">
+
+
+  
+    <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css" />
+  
+
+  
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://wqyuu.github.io/blog">
+        <img class="avatar" src="https://wqyuu.github.io/blog/images/avatar.png?v=1582020047129" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://wqyuu.github.io/blog">
+        <h1 class="site-title">Wqyuu</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="https://wqyuu.github.io/blog" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+            <div class="feature-container" style="background-image: url('https://wqyuu.github.io/blog/post-images/zookeeper-ru-men-zk-ming-ling-xing-acl-quan-xian-kong-zhi-er.jpg')">
+            </div>
+          
+          <h2 class="post-title">Zookeeper入门—ZK命令行【ACL权限控制（二）】</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2019-04-13</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://wqyuu.github.io/blog/tag/zookeeper">
+                    zookeeper
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <h2 id="常用命令行">常用命令行</h2>
+<h3 id="acl命令2">acl命令2</h3>
+<p>auth:user:pwd:cdrwa<br>
+digext:user:BASE64(SHA1(pwd)):cdrwa<br>
+addauth digest user:pwd</p>
+<h4 id="实践">实践</h4>
+<p>1.创建、登录用户<br>
+<strong>addauth digest wqy:wqy</strong><br>
+2.设置权限<br>
+<strong>setAcl /a/b auth wqy:wqy:cdrwa</strong><br>
+3.查看权限<br>
+<strong>getAcl /a/b</strong><br>
+输出下面这样的一句话 ：<br>
+‘digest’,'wqy:WXEdaLLoodqd.....==':cdrwa<br>
+注意wqy:后面是BASE64加密的密码，需要记下来<br>
+4.测试给/a/b重新授权<br>
+<strong>setAcl /a/b auth wqy123:wqy123:cdrwa</strong><br>
+5.查看权限<br>
+<strong>getAcl /a/b</strong><br>
+仍输出：‘digest’,‘wqy:WXEdaLLoodqd.....  :cdrwa<br>
+说明首次auth 设置之后，用户名密码不会改变！<br>
+6.使用digest 密文设置节点<br>
+<strong>setAcl /a/c digest wqy:wqy:WXEdaLLoodqd..... ==:cdra</strong><br>
+7.查看权限<br>
+<strong>getAcl /a/c</strong><br>
+‘digest’,'wqy:WXEdaLLoodqd..... ==':cdrwa<br>
+<img src="https://wqyuu.github.io/blog/post-images/1582017744123.jpg" alt="" loading="lazy"></p>
+<p>IP<br>
+<strong>ip:ip:cdrwa</strong></p>
+<p>设置命令，使用windows的ip地址：192.168.1.7<br>
+<strong>setAcl /a/ip ip:192.168.1.7:cdrwa</strong><br>
+查看设置<br>
+<strong>getAcl /a/ip</strong><br>
+'ip,'192.168.1.7<br>
+尝试在linux下获取值<br>
+<strong>get /a/ip</strong><br>
+Authentication is not Valid:/a/ip --没有权限<br>
+看到获取失败，需要在192.168.1.7下获取值。</p>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://wqyuu.github.io/blog/post/zookeeper-ru-men-zk-ming-ling-xing-acl-quan-xian-kong-zhi-yi">
+              <h3 class="post-title">
+                下一篇：Zookeeper入门—ZK命令行【ACL权限控制（一）】
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+        
+          <div id="gitalk-container"></div>
+        
+
+        
+      
+
+      <div class="site-footer">
+  <div class="slogan">秉忠贞之志,守谦退之节</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  Powered by <a href="https://github.com/wqyuu" target="_blank">Wqyuu</a> | <a class="rss" href="https://wqyuu.github.io/blog/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+  
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+    <script>
+
+      var gitalk = new Gitalk({
+        clientID: 'ad662aee99e9d77de1aa',
+        clientSecret: 'b74b253f75d653647fccdfe37d7d554405fc6ddc',
+        repo: 'blog',
+        owner: 'wqyuu',
+        admin: ['wqyuu'],
+        id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+        distractionFreeMode: false  // Facebook-like distraction free mode
+      })
+
+      gitalk.render('gitalk-container')
+
+    </script>
+  
+
+  
+
+
+
+
+  </body>
+</html>

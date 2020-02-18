@@ -1,0 +1,289 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>Zookeeper分布式锁的简单实现 | Wqyuu</title>
+<meta name="description" content="秉忠贞之志,守谦退之节">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://wqyuu.github.io/blog/favicon.ico?v=1582020047129">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://wqyuu.github.io/blog/styles/main.css">
+
+
+  
+    <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css" />
+  
+
+  
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://wqyuu.github.io/blog">
+        <img class="avatar" src="https://wqyuu.github.io/blog/images/avatar.png?v=1582020047129" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://wqyuu.github.io/blog">
+        <h1 class="site-title">Wqyuu</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="https://wqyuu.github.io/blog" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+            <div class="feature-container" style="background-image: url('https://wqyuu.github.io/blog/post-images/zookeeper-fen-bu-shi-suo-de-jian-dan-shi-xian.jpg')">
+            </div>
+          
+          <h2 class="post-title">Zookeeper分布式锁的简单实现</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2019-05-01</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://wqyuu.github.io/blog/tag/zookeeper">
+                    zookeeper
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <p><em><strong>使用InterProcessMutex实现</strong></em></p>
+<blockquote>
+<p>InterProcessMutex基于Zookeeper实现了分布式的公平可重入互斥锁，类似于单个JVM进程内的ReentrantLock</p>
+</blockquote>
+<h3 id="1初始化interprocessmutex">1.初始化InterProcessMutex</h3>
+<pre><code class="language-java">private  static InterProcessMutex mutex = new InterProcessMutex(client, &quot;/curator/lock&quot;); 
+</code></pre>
+<h3 id="2获取锁">2.获取锁</h3>
+<pre><code class="language-java">    //获得了锁
+    public static boolean acquire(long time, TimeUnit unit){
+    	try {
+			return mutex.acquire(time,unit);
+		} catch (Exception e) {
+			e.printStackTrace();
+			return false;
+		}
+    }
+</code></pre>
+<h3 id="3释放锁">3.释放锁</h3>
+<pre><code class="language-java">    //释放锁
+    public static void release(){
+    	try {
+			mutex.release();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+    }
+</code></pre>
+<h3 id="测试">测试：</h3>
+<pre><code class="language-java">import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.curator.RetryPolicy;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.framework.recipes.locks.InterProcessMutex;
+import org.apache.curator.retry.ExponentialBackoffRetry;
+/**
+ * 基于curator的zookeeper分布式锁
+ * 这里我们开启5个线程，每个线程获取锁的最大等待时间为5秒，为了模拟具体业务场景，方法中设置4秒等待时间。
+ * 
+ */
+public class CuratorUtil {
+    private static String address = &quot;192.168.12.101:2181&quot;;
+	
+    public static void main(String[] args) {
+		//1、重试策略：初试时间为1s 重试3次
+		RetryPolicy retryPolicy = new ExponentialBackoffRetry(1000, 3); 
+		//2、通过工厂创建连接
+		CuratorFramework client = CuratorFrameworkFactory.newClient(address, retryPolicy);
+        //3、开启连接
+        client.start();
+        //4 分布式锁
+        final InterProcessMutex mutex = new InterProcessMutex(client, &quot;/curator/lock&quot;); 
+        //读写锁
+        //InterProcessReadWriteLock readWriteLock = new InterProcessReadWriteLock(client, &quot;/readwriter&quot;);
+        
+        ExecutorService fixedThreadPool = Executors.newFixedThreadPool(5);
+        
+        for (int i = 0; i &lt; 5; i++) {
+            fixedThreadPool.submit(new Runnable() {
+                @Override
+                public void run() {
+                	boolean flag = false;
+                	try {
+                		//尝试获取锁，最多等待5秒
+                		flag = mutex.acquire(5, TimeUnit.SECONDS);
+                		Thread currentThread = Thread.currentThread();
+                		if(flag){
+                			System.out.println(&quot;线程&quot;+currentThread.getId()+&quot;获取锁成功&quot;);
+                		}else{
+                			System.out.println(&quot;线程&quot;+currentThread.getId()+&quot;获取锁失败&quot;);
+                		}
+                		//模拟业务逻辑，延时4秒
+                		Thread.sleep(4000);
+					} catch (Exception e) {
+						e.printStackTrace();
+					} finally{
+						if(flag){
+							try {
+								mutex.release();
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
+						}
+					}
+                }
+            });
+        }
+	}
+}
+</code></pre>
+<p>这里我们开启5个线程，每个线程获取锁的最大等待时间为5秒，为了模拟具体业务场景，方法中设置4秒等待时间。开始执行main方法，通过ZooInspector监控/curator/lock下的节点如下图：</p>
+<figure data-type="image" tabindex="1"><img src="https://img-blog.csdnimg.cn/20190826210337845.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="ZooInspector监控" loading="lazy"></figure>
+<p>对，没错，设置4秒的业务处理时长就是为了观察生成了几个顺序节点。果然如案例中所述，每个线程都会生成一个节点并且还是有序的。观察控制台，我们会发现只有两个线程获取锁成功，另外三个线程超时获取锁失败会自动删除节点。线程执行完毕我们刷新一下/curator/lock节点，发现刚才创建的五个子节点已经不存在了。</p>
+<p>InterProcessMutex源码分析:<br>
+<a href="https://www.cnblogs.com/shileibrave/p/9854921.html">https://www.cnblogs.com/shileibrave/p/9854921.html</a></p>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://wqyuu.github.io/blog/post/zookeeper-de-java-ke-hu-duan-curator6">
+              <h3 class="post-title">
+                下一篇：Zookeeper的Java客户端Curator(6)
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+        
+          <div id="gitalk-container"></div>
+        
+
+        
+      
+
+      <div class="site-footer">
+  <div class="slogan">秉忠贞之志,守谦退之节</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  Powered by <a href="https://github.com/wqyuu" target="_blank">Wqyuu</a> | <a class="rss" href="https://wqyuu.github.io/blog/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+  
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+    <script>
+
+      var gitalk = new Gitalk({
+        clientID: 'ad662aee99e9d77de1aa',
+        clientSecret: 'b74b253f75d653647fccdfe37d7d554405fc6ddc',
+        repo: 'blog',
+        owner: 'wqyuu',
+        admin: ['wqyuu'],
+        id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+        distractionFreeMode: false  // Facebook-like distraction free mode
+      })
+
+      gitalk.render('gitalk-container')
+
+    </script>
+  
+
+  
+
+
+
+
+  </body>
+</html>
