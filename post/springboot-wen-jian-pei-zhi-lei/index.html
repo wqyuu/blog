@@ -1,0 +1,284 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    
+<meta charset="utf-8" >
+
+<title>SpringBoot文件配置类 | Wqyuu</title>
+<meta name="description" content="秉忠贞之志,守谦退之节">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.0/animate.min.css">
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+<link rel="shortcut icon" href="https://wqyuu.github.io/blog/favicon.ico?v=1582013282909">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+<link rel="stylesheet" href="https://wqyuu.github.io/blog/styles/main.css">
+
+
+  
+    <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css" />
+  
+
+  
+
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+
+
+
+  </head>
+  <body>
+    <div id="app" class="main">
+      <div class="site-header-container">
+  <div class="site-header">
+    <div class="left">
+      <a href="https://wqyuu.github.io/blog">
+        <img class="avatar" src="https://wqyuu.github.io/blog/images/avatar.png?v=1582013282909" alt="" width="32px" height="32px">
+      </a>
+      <a href="https://wqyuu.github.io/blog">
+        <h1 class="site-title">Wqyuu</h1>
+      </a>
+    </div>
+    <div class="right">
+      <transition name="fade">
+        <i class="icon" :class="{ 'icon-close-outline': menuVisible, 'icon-menu-outline': !menuVisible }" @click="menuVisible = !menuVisible"></i>
+      </transition>
+    </div>
+  </div>
+</div>
+
+<transition name="fade">
+  <div class="menu-container" style="display: none;" v-show="menuVisible">
+    <div class="menu-list">
+      
+        
+          <a href="https://wqyuu.github.io/blog" class="menu purple-link">
+            首页
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/archives" class="menu purple-link">
+            归档
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/tags" class="menu purple-link">
+            标签
+          </a>
+        
+      
+        
+          <a href="https://wqyuu.github.io/blog/post/about" class="menu purple-link">
+            关于
+          </a>
+        
+      
+    </div>
+  </div>
+</transition>
+
+
+      <div class="content-container">
+        <div class="post-detail">
+          
+            <div class="feature-container" style="background-image: url('https://wqyuu.github.io/blog/post-images/springboot-wen-jian-pei-zhi-lei.png')">
+            </div>
+          
+          <h2 class="post-title">SpringBoot文件配置类</h2>
+          <div class="post-info post-detail-info">
+            <span><i class="icon-calendar-outline"></i> 2020-02-18</span>
+            
+              <span>
+                <i class="icon-pricetags-outline"></i>
+                
+                  <a href="https://wqyuu.github.io/blog/tag/springboot">
+                    springboot
+                    
+                  </a>
+                
+              </span>
+            
+          </div>
+          <div class="post-content">
+            <p>😁<em>手写一个文件配置类，来规定文件上传的属性。</em></p>
+<!-- more -->
+<blockquote>
+<p>springBoot的文件上传有默认的配置类：MultipartAutoConfiguration，配置文件在Spring-boot-autoconfig下org.springframework.boot.autoconfigure.web包内。</p>
+</blockquote>
+<p>在写配置前，需要了解springBoot的一些基本注解：</p>
+<ul>
+<li><strong>@Configuration</strong>  指示一个类声明一个或多个@Bean方法，并且可以由Spring容器处理，以便在运行时为这些bean生成BeanDefinition和服务请求</li>
+<li><strong>@ConditionalOnClass</strong>   是在特定的类加载后才可使用</li>
+<li><strong>@ConditionalOnProperty</strong>  控制Configuration是否生效</li>
+<li><strong>@EnableConfigurationProperties</strong>  开启使用自动配置的文件</li>
+<li><strong>@ConditionalOnMissingBean</strong>  该注解表示，如果存在它修饰的类的bean，则不需要再创建这个bean</li>
+</ul>
+<p><em>相关注解的详解可看以下文章：</em><br>
+<a href="https://www.jianshu.com/p/721c76c1529c">Spring @Configuration 注解介绍</a><br>
+<a href="https://blog.csdn.net/andy_zhang2007/article/details/81284875">Spring Boot基于特定条件创建Bean例子 : ConditionalOnClass</a><br>
+<a href="https://www.cnblogs.com/yixianyixian/p/7346894.html">springBoot----@ConditionalOnxxx相关注解总结</a><br>
+<a href="https://studygolang.com/articles/20004">springboot(四)——@EnableConfigurationProperties是如何起作用的你知道吗</a><br>
+<a href="https://www.jianshu.com/p/68a75c093023">@ConditionalOnProperty来控制Configuration是否生效</a></p>
+<h3 id="文件上传配置类">文件上传配置类</h3>
+<pre><code class="language-java">import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.web.MultipartProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.multipart.MultipartResolver;
+import org.springframework.web.multipart.support.StandardServletMultipartResolver;
+import org.springframework.web.servlet.DispatcherServlet;
+
+import javax.servlet.MultipartConfigElement;
+import javax.servlet.Servlet;
+
+/**
+ * 文件上传配置类
+ */
+@Configuration
+@ConditionalOnClass({Servlet.class,StandardServletMultipartResolver.class,
+        MultipartConfigElement.class})
+@ConditionalOnProperty(prefix = &quot;spring.http.multipart&quot;,name=&quot;enabled&quot;,
+matchIfMissing = true)
+@EnableConfigurationProperties(MultipartProperties.class)
+public class WebFileUploadConfig {
+
+    private final MultipartProperties multipartProperties;
+
+    public WebFileUploadConfig(MultipartProperties multipartProperties){
+        this.multipartProperties=multipartProperties;
+    }
+    /**
+     * 上传配置
+     * @return
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public MultipartConfigElement multipartConfigElement(){
+        return this.multipartProperties.createMultipartConfig();
+    }
+
+    /**
+     * 注册解析器
+     * @return
+     */
+    @Bean(name = DispatcherServlet.MULTIPART_RESOLVER_BEAN_NAME)
+    @ConditionalOnMissingBean(MultipartResolver.class)
+    public StandardServletMultipartResolver multipartResolver(){
+        StandardServletMultipartResolver multipartResolver =
+                new StandardServletMultipartResolver();
+        multipartResolver.setResolveLazily(this.multipartProperties.isResolveLazily());
+        return multipartResolver;
+    }
+}
+</code></pre>
+<h3 id="配置文件">配置文件</h3>
+<pre><code class="language-properties">spring.http.multipart.enabled=true
+spring.http.multipart.location=/SpingBoot/uploadFile_dir/
+spring.http.multipart.file-size-threshold=5MB
+spring.http.multipart.max-request-size=20MB
+</code></pre>
+<h4 id="解析">解析：</h4>
+<p><code>@ConditionalOnClass</code> 对生效情况作了限制，需要web常用类加载到beanfactory才可生效<br>
+<code>@ConditionalOnProperty</code> 指定了配置文件中的文件上传属性，前缀为 <code>spring.http.multipart</code><br>
+<code>@EnableConfigurationProperties(MultipartProperties.class)</code> 开启配置<code>MultipartProperties</code>类，有上面的<code>@ConditionalOnProperty</code> ，<code>MultipartProperties</code>中的属性已经是写到配置文件中自定义属性。</p>
+<p><code>multipartProperties.createMultipartConfig()</code>  创建文件上传配置，将自定义属性加载到spring中</p>
+<p><code>multipartResolver()</code> 方法用于注册解析器</p>
+<blockquote>
+<p>MultipartResolver 位于 HandlerMapping 之前，请求一来就交由它来处理。当 Web 请求到达 DispatcherServlet 并等待处理的时候，DispatcherServlet 首先会检查能否从自的 WebApplicationContext 中找到一个名称为 multipartResolver(由 DispatcherServlet 的常量 MULTIPART_RESOLVER_BEAN_NAME 所决定)的 MultipartResolver 实例。如果能够获得一个 MultipartResolver 的实例，DispatcherServlet 将调用 MultipartResolver 的 isMultipart(request) 方法检查当前 Web 请求是否为 multipart类型。如果是，DispatcherServlet 将调用 MultipartResolver 的 resolveMultipart(request) 方法，对原始 request 进行装饰，并返回一个 MultipartHttpServletRequest 供后继处理流程使用(最初的 HttpServletRequest 被偷梁换柱成了 MultipartHttpServletRequest)，否则，直接返回最初的 HttpServletRequest。</p>
+</blockquote>
+<p>参照文章：<br>
+<a href="https://www.cnblogs.com/lmk-sym/p/6529232.html">SpringBoot上传相关配置</a><br>
+<a href="https://blog.csdn.net/qq_37432174/article/details/98991541">SpringBoot文件上传 MultipartAutoConfiguration源码简单解析<br>
+</a></p>
+
+          </div>
+        </div>
+
+        
+          <div class="next-post">
+            <a class="purple-link" href="https://wqyuu.github.io/blog/post/springboot-yu-mysql-zheng-he">
+              <h3 class="post-title">
+                下一篇： SpringBoot与Mysql整合
+              </h3>
+            </a>
+          </div>
+          
+      </div>
+
+      
+        
+          <div id="gitalk-container"></div>
+        
+
+        
+      
+
+      <div class="site-footer">
+  <div class="slogan">秉忠贞之志,守谦退之节</div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+  Powered by <a href="https://github.com/wqyuu" target="_blank">Wqyuu</a> | <a class="rss" href="https://wqyuu.github.io/blog/atom.xml" target="_blank">RSS</a>
+</div>
+
+
+    </div>
+    <script type="application/javascript">
+
+hljs.initHighlightingOnLoad()
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    menuVisible: false,
+  },
+})
+
+</script>
+
+
+
+  
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+    <script>
+
+      var gitalk = new Gitalk({
+        clientID: 'ad662aee99e9d77de1aa',
+        clientSecret: 'b74b253f75d653647fccdfe37d7d554405fc6ddc',
+        repo: 'blog',
+        owner: 'wqyuu',
+        admin: ['wqyuu'],
+        id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+        distractionFreeMode: false  // Facebook-like distraction free mode
+      })
+
+      gitalk.render('gitalk-container')
+
+    </script>
+  
+
+  
+
+
+
+
+  </body>
+</html>

@@ -1,15 +1,379 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://wqyuu.github.io/blog</id>
-    <title>Gridea</title>
-    <updated>2020-02-18T06:58:08.856Z</updated>
+    <title>Wqyuu</title>
+    <updated>2020-02-18T08:08:37.200Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://wqyuu.github.io/blog"/>
     <link rel="self" href="https://wqyuu.github.io/blog/atom.xml"/>
-    <subtitle>温故而知新</subtitle>
+    <subtitle>秉忠贞之志,守谦退之节</subtitle>
     <logo>https://wqyuu.github.io/blog/images/avatar.png</logo>
     <icon>https://wqyuu.github.io/blog/favicon.ico</icon>
-    <rights>All rights reserved 2020, Gridea</rights>
+    <rights>All rights reserved 2020, Wqyuu</rights>
+    <entry>
+        <title type="html"><![CDATA[SpringBoot文件配置类]]></title>
+        <id>https://wqyuu.github.io/blog/post/springboot-wen-jian-pei-zhi-lei</id>
+        <link href="https://wqyuu.github.io/blog/post/springboot-wen-jian-pei-zhi-lei">
+        </link>
+        <updated>2020-02-18T04:43:31.000Z</updated>
+        <summary type="html"><![CDATA[<p>😁<em>手写一个文件配置类，来规定文件上传的属性。</em></p>
+]]></summary>
+        <content type="html"><![CDATA[<p>😁<em>手写一个文件配置类，来规定文件上传的属性。</em></p>
+<!-- more -->
+<blockquote>
+<p>springBoot的文件上传有默认的配置类：MultipartAutoConfiguration，配置文件在Spring-boot-autoconfig下org.springframework.boot.autoconfigure.web包内。</p>
+</blockquote>
+<p>在写配置前，需要了解springBoot的一些基本注解：</p>
+<ul>
+<li><strong>@Configuration</strong>  指示一个类声明一个或多个@Bean方法，并且可以由Spring容器处理，以便在运行时为这些bean生成BeanDefinition和服务请求</li>
+<li><strong>@ConditionalOnClass</strong>   是在特定的类加载后才可使用</li>
+<li><strong>@ConditionalOnProperty</strong>  控制Configuration是否生效</li>
+<li><strong>@EnableConfigurationProperties</strong>  开启使用自动配置的文件</li>
+<li><strong>@ConditionalOnMissingBean</strong>  该注解表示，如果存在它修饰的类的bean，则不需要再创建这个bean</li>
+</ul>
+<p><em>相关注解的详解可看以下文章：</em><br>
+<a href="https://www.jianshu.com/p/721c76c1529c">Spring @Configuration 注解介绍</a><br>
+<a href="https://blog.csdn.net/andy_zhang2007/article/details/81284875">Spring Boot基于特定条件创建Bean例子 : ConditionalOnClass</a><br>
+<a href="https://www.cnblogs.com/yixianyixian/p/7346894.html">springBoot----@ConditionalOnxxx相关注解总结</a><br>
+<a href="https://studygolang.com/articles/20004">springboot(四)——@EnableConfigurationProperties是如何起作用的你知道吗</a><br>
+<a href="https://www.jianshu.com/p/68a75c093023">@ConditionalOnProperty来控制Configuration是否生效</a></p>
+<h3 id="文件上传配置类">文件上传配置类</h3>
+<pre><code class="language-java">import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.web.MultipartProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.multipart.MultipartResolver;
+import org.springframework.web.multipart.support.StandardServletMultipartResolver;
+import org.springframework.web.servlet.DispatcherServlet;
+
+import javax.servlet.MultipartConfigElement;
+import javax.servlet.Servlet;
+
+/**
+ * 文件上传配置类
+ */
+@Configuration
+@ConditionalOnClass({Servlet.class,StandardServletMultipartResolver.class,
+        MultipartConfigElement.class})
+@ConditionalOnProperty(prefix = &quot;spring.http.multipart&quot;,name=&quot;enabled&quot;,
+matchIfMissing = true)
+@EnableConfigurationProperties(MultipartProperties.class)
+public class WebFileUploadConfig {
+
+    private final MultipartProperties multipartProperties;
+
+    public WebFileUploadConfig(MultipartProperties multipartProperties){
+        this.multipartProperties=multipartProperties;
+    }
+    /**
+     * 上传配置
+     * @return
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public MultipartConfigElement multipartConfigElement(){
+        return this.multipartProperties.createMultipartConfig();
+    }
+
+    /**
+     * 注册解析器
+     * @return
+     */
+    @Bean(name = DispatcherServlet.MULTIPART_RESOLVER_BEAN_NAME)
+    @ConditionalOnMissingBean(MultipartResolver.class)
+    public StandardServletMultipartResolver multipartResolver(){
+        StandardServletMultipartResolver multipartResolver =
+                new StandardServletMultipartResolver();
+        multipartResolver.setResolveLazily(this.multipartProperties.isResolveLazily());
+        return multipartResolver;
+    }
+}
+</code></pre>
+<h3 id="配置文件">配置文件</h3>
+<pre><code class="language-properties">spring.http.multipart.enabled=true
+spring.http.multipart.location=/SpingBoot/uploadFile_dir/
+spring.http.multipart.file-size-threshold=5MB
+spring.http.multipart.max-request-size=20MB
+</code></pre>
+<h4 id="解析">解析：</h4>
+<p><code>@ConditionalOnClass</code> 对生效情况作了限制，需要web常用类加载到beanfactory才可生效<br>
+<code>@ConditionalOnProperty</code> 指定了配置文件中的文件上传属性，前缀为 <code>spring.http.multipart</code><br>
+<code>@EnableConfigurationProperties(MultipartProperties.class)</code> 开启配置<code>MultipartProperties</code>类，有上面的<code>@ConditionalOnProperty</code> ，<code>MultipartProperties</code>中的属性已经是写到配置文件中自定义属性。</p>
+<p><code>multipartProperties.createMultipartConfig()</code>  创建文件上传配置，将自定义属性加载到spring中</p>
+<p><code>multipartResolver()</code> 方法用于注册解析器</p>
+<blockquote>
+<p>MultipartResolver 位于 HandlerMapping 之前，请求一来就交由它来处理。当 Web 请求到达 DispatcherServlet 并等待处理的时候，DispatcherServlet 首先会检查能否从自的 WebApplicationContext 中找到一个名称为 multipartResolver(由 DispatcherServlet 的常量 MULTIPART_RESOLVER_BEAN_NAME 所决定)的 MultipartResolver 实例。如果能够获得一个 MultipartResolver 的实例，DispatcherServlet 将调用 MultipartResolver 的 isMultipart(request) 方法检查当前 Web 请求是否为 multipart类型。如果是，DispatcherServlet 将调用 MultipartResolver 的 resolveMultipart(request) 方法，对原始 request 进行装饰，并返回一个 MultipartHttpServletRequest 供后继处理流程使用(最初的 HttpServletRequest 被偷梁换柱成了 MultipartHttpServletRequest)，否则，直接返回最初的 HttpServletRequest。</p>
+</blockquote>
+<p>参照文章：<br>
+<a href="https://www.cnblogs.com/lmk-sym/p/6529232.html">SpringBoot上传相关配置</a><br>
+<a href="https://blog.csdn.net/qq_37432174/article/details/98991541">SpringBoot文件上传 MultipartAutoConfiguration源码简单解析<br>
+</a></p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[ SpringBoot与Mysql整合]]></title>
+        <id>https://wqyuu.github.io/blog/post/springboot-yu-mysql-zheng-he</id>
+        <link href="https://wqyuu.github.io/blog/post/springboot-yu-mysql-zheng-he">
+        </link>
+        <updated>2019-03-18T00:22:23.000Z</updated>
+        <summary type="html"><![CDATA[<p>😁<br>
+简介：使用JPA整合Mysql</p>
+]]></summary>
+        <content type="html"><![CDATA[<p>😁<br>
+简介：使用JPA整合Mysql</p>
+<!-- more -->
+<p>开始准备：</p>
+<ul>
+<li>Mysql数据库</li>
+<li>搭建好的springboot的demo</li>
+<li>IDEA</li>
+</ul>
+<p>搭建springboot的demo及开发环境可以查看上一篇<br>
+<a href="https://blog.csdn.net/qq_37338761/article/details/100113153">SpringBoot知识体系（一）——简单图解从零搭建SpringBoot</a></p>
+<p><ul class="markdownIt-TOC">
+<li>
+<ul>
+<li>
+<ul>
+<li><a href="#%E4%B8%80%E6%B7%BB%E5%8A%A0%E8%AE%BF%E9%97%AE%E6%95%B0%E6%8D%AE%E5%BA%93%E7%9B%B8%E5%85%B3%E4%BE%9D%E8%B5%96">一.添加访问数据库相关依赖!</a></li>
+<li><a href="#%E4%BA%8C%E6%95%B0%E6%8D%AE%E5%BA%93%E5%88%9B%E5%BB%BA%E7%94%A8%E6%88%B7%E8%A1%A8">二.数据库创建用户表</a></li>
+<li><a href="#%E4%B8%89%E5%A2%9E%E5%8A%A0mysql%E8%BF%9E%E6%8E%A5%E4%BF%A1%E6%81%AF">三.增加Mysql连接信息</a></li>
+<li><a href="#%E5%9B%9B%E5%A2%9E%E5%8A%A0jpa%E9%85%8D%E7%BD%AE">四.增加JPA配置</a></li>
+<li><a href="#%E4%BA%94%E5%88%9B%E5%BB%BA%E5%AE%9E%E4%BD%93%E7%B1%BB">五.创建实体类</a></li>
+<li><a href="#%E5%85%AD%E5%88%9B%E5%BB%BAdao%E5%B1%82%E6%8E%A5%E5%8F%A3userrepository">六.创建DAO层接口UserRepository</a></li>
+<li><a href="#%E4%B8%83%E5%88%9B%E5%BB%BA%E6%B5%8B%E8%AF%95%E7%B1%BB">七.创建测试类</a>
+<ul>
+<li><a href="#1%E4%BF%AE%E6%94%B9applicationtest">(1)修改ApplicationTest:</a></li>
+<li><a href="#2%E5%9C%A8repository%E5%8C%85%E4%B8%8B%E5%88%9B%E5%BB%BAuserrepositorytest">(2)在repository包下创建UserRepositoryTest</a></li>
+<li><a href="#3%E8%BF%90%E8%A1%8C%E6%B5%8B%E8%AF%95">(3)运行测试</a></li>
+</ul>
+</li>
+<li><a href="#%E5%85%AB%E5%8F%AF%E8%83%BD%E5%87%BA%E7%8E%B0%E7%9A%84%E6%8A%A5%E9%94%99">八.可能出现的报错</a>
+<ul>
+<li><a href="#1%E8%BF%90%E8%A1%8C%E6%97%B6%E5%87%BA%E7%8E%B0hibernatedialect-not-set">(1）运行时出现'hibernate.dialect' not set</a></li>
+<li><a href="#2%E8%BF%90%E8%A1%8C%E6%97%B6%E5%87%BA%E7%8E%B0no-spring-session-store-is-configured">(2）运行时出现No Spring Session store is configured</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</p>
+<h3 id="一添加访问数据库相关依赖">一.添加访问数据库相关依赖<img src="https://wqyuu.github.io/blog/post-images/1582010758165.jpg" alt="" loading="lazy"></h3>
+<pre><code class="language-xml">       &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-boot-starter-data-jpa&lt;/artifactId&gt;
+        &lt;/dependency&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;com.h2database&lt;/groupId&gt;
+            &lt;artifactId&gt;h2&lt;/artifactId&gt;
+            &lt;scope&gt;test&lt;/scope&gt;
+        &lt;/dependency&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;mysql&lt;/groupId&gt;
+            &lt;artifactId&gt;mysql-connector-java&lt;/artifactId&gt;
+            &lt;scope&gt;runtime&lt;/scope&gt;
+        &lt;/dependency&gt;
+</code></pre>
+<h3 id="二数据库创建用户表">二.数据库创建用户表</h3>
+<pre><code class="language-sql">DROP TABLE IF EXISTS `user`;
+CREATE TABLE `user` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '用户唯一id',
+  `name` varchar(32) DEFAULT NULL COMMENT '用户名',
+  `email` varchar(32) DEFAULT NULL COMMENT '电子邮箱',
+  `phone_number` varchar(15) NOT NULL COMMENT '电话号码',
+  `password` varchar(32) DEFAULT NULL COMMENT '密码',
+  `status` int(2) unsigned NOT NULL DEFAULT '0' COMMENT '用户状态 0-正常 1-封禁',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '用户账号创建时间',
+  `last_login_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '上次登录时间',
+  `last_update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '上次更新记录时间',
+  `avatar` varchar(255) DEFAULT NULL COMMENT '头像',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `index_on_phone` (`phone_number`) USING BTREE COMMENT '用户手机号',
+  UNIQUE KEY `index_on_username` (`name`) USING BTREE COMMENT '用户名索引',
+  UNIQUE KEY `index_on_email` (`email`) USING BTREE COMMENT '电子邮箱索引'
+) ENGINE=InnoDB AUTO_INCREMENT=9 
+DEFAULT CHARSET=utf8mb4 COMMENT='用户基本信息表';
+
+</code></pre>
+<h3 id="三增加mysql连接信息">三.增加Mysql连接信息</h3>
+<pre><code class="language-java">#Mysql
+spring.datasource.driver-class-name=com.mysql.jdbc.Driver
+spring.datasource.url=jdbc:mysql://127.0.0.1:3306/wqy01?useUnicode=true&amp;characterEncoding=UTF-8
+spring.datasource.username=root
+spring.datasource.password=123
+
+#jpa
+spring.jpa.show-sql=true
+spring.jpa.hibernate.ddl-auto=validate
+spring.jpa.database-platform=org.hibernate.dialect.MySQLDialect
+</code></pre>
+<h3 id="四增加jpa配置">四.增加JPA配置</h3>
+<p>在根目录下创建config包，创建JPAConfig 类</p>
+<pre><code class="language-java">import org.springframework.boot.autoconfigure.jdbc.DataSourceBuilder;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.orm.jpa.JpaTransactionManager;
+import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
+import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
+
+import javax.persistence.EntityManagerFactory;
+import javax.sql.DataSource;
+
+@Configuration
+@EnableJpaRepositories(basePackages = &quot;com.wqy.springbootes.repository&quot;)
+@EnableTransactionManagement
+public class JPAConfig {
+
+    @Bean
+    @ConfigurationProperties(prefix = &quot;spring.datasource&quot;)
+    public DataSource dataSource(){
+        return DataSourceBuilder.create().build();
+    }
+
+    @Bean
+    public LocalContainerEntityManagerFactoryBean entityManagerFactory(){
+        HibernateJpaVendorAdapter jpaVendorAdapter = new HibernateJpaVendorAdapter();
+        jpaVendorAdapter.setGenerateDdl(false);
+        LocalContainerEntityManagerFactoryBean entityManagerFactoryBean =
+                new LocalContainerEntityManagerFactoryBean();
+        entityManagerFactoryBean.setDataSource(dataSource());
+        entityManagerFactoryBean.setJpaVendorAdapter(jpaVendorAdapter);
+        entityManagerFactoryBean.setPackagesToScan(&quot;com.wqy.springbootes.entity&quot;);
+
+        return entityManagerFactoryBean;
+    }
+
+    @Bean
+    public PlatformTransactionManager transactionManager(EntityManagerFactory entityManagerFactory){
+
+        JpaTransactionManager transactionManager = new JpaTransactionManager();
+        transactionManager.setEntityManagerFactory(entityManagerFactory);
+        return transactionManager;
+    }
+
+}
+</code></pre>
+<h3 id="五创建实体类">五.创建实体类</h3>
+<p>在根目录下创建entity包，创建User类,省略set/get</p>
+<pre><code class="language-java">import javax.persistence.*;
+import java.util.Date;
+
+@Entity
+@Table(name = &quot;user&quot;)
+public class User {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name;
+
+    private String password;
+
+    private String email;
+
+    @Column(name = &quot;phone_number&quot;)
+    private String phoneNumber;
+
+    private int status;
+
+    @Column(name = &quot;create_time&quot;)
+    private Date createTime;
+
+    @Column(name = &quot;last_login_time&quot;)
+    private Date lastLoginTime;
+
+    @Column(name = &quot;last_update_time&quot;)
+    private Date lastUpdateTime;
+
+    private String avatar;
+}    
+</code></pre>
+<h3 id="六创建dao层接口userrepository">六.创建DAO层接口UserRepository</h3>
+<p>在根目录下创建repository包，创建UserRepository类，集成CrudRepository</p>
+<pre><code class="language-java">import com.wqy.springbootes.entity.User;
+import org.springframework.data.repository.CrudRepository;
+
+public interface UserRepository extends CrudRepository&lt;User,Long&gt; {
+}
+</code></pre>
+<h3 id="七创建测试类">七.创建测试类</h3>
+<p>在测试类根目录下创建repository包</p>
+<h4 id="1修改applicationtest">(1)修改ApplicationTest:</h4>
+<pre><code class="language-java">
+import org.junit.runner.RunWith;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.junit4.SpringRunner;
+
+@RunWith(SpringRunner.class)
+@SpringBootTest
+@Configuration
+public class SpringbootEsApplicationTests {
+}
+</code></pre>
+<h4 id="2在repository包下创建userrepositorytest">(2)在repository包下创建UserRepositoryTest</h4>
+<pre><code class="language-java">public class UserRepositoryTest extends SpringbootEsApplicationTests {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Test
+    public void test(){
+        User user = userRepository.findOne(1001L);
+        Assert.assertEquals(&quot;25490@163.com&quot;,user.getEmail());
+    }
+}
+</code></pre>
+<h4 id="3运行测试">(3)运行测试</h4>
+<p><em>console运行无报错，OK！</em></p>
+<h3 id="八可能出现的报错">八.可能出现的报错</h3>
+<h4 id="1运行时出现hibernatedialect-not-set">(1）运行时出现'hibernate.dialect' not set</h4>
+<p>可以点击查看<a href="https://blog.csdn.net/qq_37338761/article/details/100113845">springboot的数据库设置报错解决</a></p>
+<h4 id="2运行时出现no-spring-session-store-is-configured">(2）运行时出现No Spring Session store is configured</h4>
+<p>可以点击查看<a href="https://blog.csdn.net/qq_37338761/article/details/100126831">No Spring Session store is configured报错解决</a></p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[简单图解从零搭建SpringBoot]]></title>
+        <id>https://wqyuu.github.io/blog/post/jian-dan-tu-jie-cong-ling-da-jian-springboot</id>
+        <link href="https://wqyuu.github.io/blog/post/jian-dan-tu-jie-cong-ling-da-jian-springboot">
+        </link>
+        <updated>2019-02-17T07:40:09.000Z</updated>
+        <summary type="html"><![CDATA[<p>利用IDEA创建项目，也可以直接在<a href="https://start.spring.io/">https://start.spring.io/</a>上面创建</p>
+]]></summary>
+        <content type="html"><![CDATA[<p>利用IDEA创建项目，也可以直接在<a href="https://start.spring.io/">https://start.spring.io/</a>上面创建</p>
+<!-- more -->
+<p><img src="https://wqyuu.github.io/blog/post-images/1582011714452.jpg" alt="" loading="lazy"><br>
+环境：windows<br>
+工具：IDEA<br>
+JDK版本：1.8<br>
+maven: 3.5<br>
+mysql: 5.6</p>
+<p><strong>首先利用IDEA创建项目，也可以直接在<a href="https://start.spring.io/">https://start.spring.io/</a>上面创建<br>
+步骤如图：</strong><br>
+（1）File-&gt;New-&gt;Project<br>
+<img src="https://img-blog.csdnimg.cn/20190828094629328.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"><br>
+（2）选中Spring Initializr 。JDK选中1.8，点击next<br>
+<img src="https://img-blog.csdnimg.cn/20190828095043865.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"><br>
+(3) 设置组名，项目名，版本等信息，然后next。（如果此处有报错Initialization failed for https://start.spring.io/ 查看这篇解决办法：<a href="https://blog.csdn.net/qq_37338761/article/details/100113712">解决SpringBoot项目报错（一）——Initialization failed</a>）<br>
+<img src="https://img-blog.csdnimg.cn/20190828095848772.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"><br>
+（4）勾选依赖 DevTools、Spring Web Starter、Thymeleaf、Spring Security、JPA 然后next<br>
+<img src="https://img-blog.csdnimg.cn/20190828100022359.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"><br>
+（5）选中项目保存位置，点Finish。等待创建完成！<br>
+<img src="https://img-blog.csdnimg.cn/20190828100251967.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM3MzM4NzYx,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述" loading="lazy"></p>
+]]></content>
+    </entry>
     <entry>
         <title type="html"><![CDATA[Hello Gridea]]></title>
         <id>https://wqyuu.github.io/blog/post/hello-gridea</id>
